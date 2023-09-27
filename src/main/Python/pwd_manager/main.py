@@ -110,3 +110,4 @@ Label(window_register, text="", bg=background_color).pack()
 Button(window_register, text="sign up", height="2", width="30", bg="#FFFFFF", command=registrar_usuario).pack()
 
 window_principal.mainloop()
+
