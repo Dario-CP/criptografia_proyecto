@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 
 JSON_FILES_PATH = str(Path.home()) + "/Desktop/python_projects/criptografia_proyecto/src/data/"
+#MI PATH /PycharmProjects/criptografia_proyecto/src/data/
+
 
 class User():
     """
@@ -29,13 +31,11 @@ class User():
         # Read the users.json file
         users = self.get_users()
         if users == []:
-            users = [
-                {
+            users.append({
                     "user_name": self.user_name,
                     "password": self.password,
                     "user_id": str(self.user_id)
-                }
-            ]
+                })
         else:
             # Check that the user is not already registered
             for user in users:
@@ -71,7 +71,6 @@ class User():
                 users = json.load(file)
         except FileNotFoundError:
             users = []
-
         return users
 
     @property
