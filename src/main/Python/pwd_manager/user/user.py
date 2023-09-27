@@ -27,10 +27,8 @@ class User():
     def save_user(self):
         """Save the user into the user's JSON file"""
         # Read the users.json file
-        try:
-            with open(JSON_FILES_PATH + 'users.json', 'r') as file:
-                users = json.load(file)
-        except FileNotFoundError:
+        users = self.get_users()
+        if users == []:
             users = [
                 {
                     "user_name": self.user_name,
@@ -39,6 +37,12 @@ class User():
                 }
             ]
         else:
+            # Check that the user is not already registered
+            for user in users:
+                if user["user_name"] == self.user_name:
+                    raise ValueError("Username already taken")
+
+            # Add the new user to the users list
             users.append({
                 "user_name": self.user_name,
                 "password": self.password,
@@ -48,6 +52,27 @@ class User():
         # Write the users.json file
         with open(JSON_FILES_PATH + 'users.json', 'w') as file:
             json.dump(users, file, indent=2)
+
+    def check_user(self):
+        """Checks if the user is registered with the given password"""
+        # Read the users.json file
+        users = self.get_users()
+        for user in users:
+            if user["user_name"] == self.user_name and user["password"] == self.password:
+                return True
+        return False
+
+
+    def get_users(self):
+        """Returns a list of all the users"""
+        # Read the users.json file
+        try:
+            with open(JSON_FILES_PATH + 'users.json', 'r') as file:
+                users = json.load(file)
+        except FileNotFoundError:
+            users = []
+
+        return users
 
     @property
     def user_name(self):
