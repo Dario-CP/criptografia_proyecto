@@ -17,7 +17,7 @@ class Login():
         login = user.check_user()
         if login:
             print("Login successful")
-            return user.user_id
+            return user.user_name
         else:
             print("Login failed")
             return None

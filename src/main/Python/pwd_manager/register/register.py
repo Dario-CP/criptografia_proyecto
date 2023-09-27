@@ -13,6 +13,6 @@ class Register():
 
     def register_user(self, user_name, password):
         """Register the user into the users file"""
-        my_user = User(user_name, password)
-        my_user.save_user()
-        return my_user.user_id
+        user = User(user_name, password)
+        user.save_user()
+        return user.user_name

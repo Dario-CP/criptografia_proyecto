@@ -74,6 +74,12 @@ class User():
             users = []
         return users
 
+    def añadir(self):
+        pass
+
+    def eliminar(self):
+        pass
+
     @property
     def user_name(self):
         """gets the user_name value"""
