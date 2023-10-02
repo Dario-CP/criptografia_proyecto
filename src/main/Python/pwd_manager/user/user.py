@@ -4,9 +4,11 @@ User module for the password manager.
 
 import uuid
 import json
+import os
+from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from pathlib import Path
 
-JSON_FILES_PATH = str(Path.home()) + "/PycharmProjects/criptografia_proyecto/src/data/"
+JSON_FILES_PATH = str(Path.home()) + "/Desktop/python_projects/criptografia_proyecto/src/data/"
 #Carrero PATH /PycharmProjects/criptografia_proyecto/src/data/
 #Dario PATH /Desktop/python_projects/criptografia_proyecto/src/data/
 
@@ -31,11 +33,13 @@ class User():
         """Save the user into the user's JSON file"""
         # Read the users.json file
         users = self.get_users()
+        salt_password = self.derive_password()
         if users == []:
             users.append({
-                    "user_name": self.user_name,
-                    "password": self.password,
-                    "user_id": str(self.user_id)
+                "user_name": self.user_name,
+                "password": salt_password[1].decode(),
+                "salt": salt_password[0],
+                "user_id": str(self.user_id)
                 })
         else:
             # Check that the user is not already registered
@@ -46,7 +50,8 @@ class User():
             # Add the new user to the users list
             users.append({
                 "user_name": self.user_name,
-                "password": self.password,
+                "password": salt_password[1].decode(),
+                "salt": salt_password[0],
                 "user_id": str(self.user_id)
             })
 
@@ -59,7 +64,7 @@ class User():
         # Read the users.json file
         users = self.get_users()
         for user in users:
-            if user["user_name"] == self.user_name and user["password"] == self.password:
+            if user["user_name"] == self.user_name and self.check_password(user["salt"], user["password"].encode()):
                 return True
         return False
 
@@ -73,6 +78,35 @@ class User():
         except FileNotFoundError:
             users = []
         return users
+
+    def derive_password(self):
+        salt = os.urandom(16)
+        # derive
+        kdf = Scrypt(
+            salt=salt,
+            length=32,
+            n=2 ** 14,
+            r=8,
+            p=1,
+        )
+        key = kdf.derive(self.password.encode())    # .encode to convert str to bytes
+        return salt, key
+
+    def check_password(self, salt, key):
+        # verify
+        kdf = Scrypt(
+            salt=salt,
+            length=32,
+            n=2 ** 14,
+            r=8,
+            p=1,
+        )
+        try:
+            kdf.verify(self.password.encode(), key)
+            return True
+        except:
+            return False
+
 
     def añadir(self):
         pass
