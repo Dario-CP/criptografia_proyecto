@@ -18,11 +18,29 @@ class User():
     Class for providing the methods for registering a new user
     """
 
-    def __init__(self, user_name, password):
-        self.__user_name = user_name
-        self.__password = password
-        self.__user_id = self.generate_uuid()
+    def __init__(self):
+        self.username = ""
+        self.password = ""
+        self.user_id = self.generate_uuid()
 
+    def login_user(self, username, password):
+        """Login the user"""
+        self.username = username
+        self.password = password
+        login = self.check_user()
+        if login:
+            print("Login successful")
+            return self.username
+        else:
+            print("Login failed")
+            return None
+
+    def register_user(self, username, password):
+        """Register the user into the users file"""
+        self.username = username
+        self.password = password
+        self.save_user()
+        return self.username
 
     # Method to generate uuid
     def generate_uuid(self):
@@ -36,27 +54,27 @@ class User():
         salt_password = self.derive_password()
         if users == []:
             users.append({
-                "user_name": self.user_name,
-                "password": salt_password[1].decode(),
-                "salt": salt_password[0],
+                "user_name": self.username,
+                "password": str(salt_password[1]),
+                "salt": str(salt_password[0]),
                 "user_id": str(self.user_id)
                 })
         else:
             # Check that the user is not already registered
             for user in users:
-                if user["user_name"] == self.user_name:
+                if user["user_name"] == self.username:
                     raise ValueError("Username already taken")
 
             # Add the new user to the users list
             users.append({
-                "user_name": self.user_name,
-                "password": salt_password[1].decode(),
-                "salt": salt_password[0],
+                "user_name": self.username,
+                "password": str(salt_password[1]),
+                "salt": str(salt_password[0]),
                 "user_id": str(self.user_id)
             })
 
         # Write the users.json file
-        with open(JSON_FILES_PATH + 'users.json', 'w') as file:
+        with open(JSON_FILES_PATH + 'users.json', 'w', encoding='utf-8') as file:
             json.dump(users, file, indent=2)
 
     def check_user(self):
@@ -64,7 +82,7 @@ class User():
         # Read the users.json file
         users = self.get_users()
         for user in users:
-            if user["user_name"] == self.user_name and self.check_password(user["salt"], user["password"].encode()):
+            if user["user_name"] == self.username and self.check_password(eval(user["salt"]), eval(user["password"])):
                 return True
         return False
 
@@ -107,6 +125,9 @@ class User():
         except:
             return False
 
+    def __del__(self):
+        pass
+        # print("User logged out")
 
     def añadir(self):
         pass
@@ -115,12 +136,12 @@ class User():
         pass
 
     @property
-    def user_name(self):
+    def username(self):
         """gets the user_name value"""
         return self.__user_name
 
-    @user_name.setter
-    def user_name(self, value):
+    @username.setter
+    def username(self, value):
         self.__user_name = value
 
     @property
