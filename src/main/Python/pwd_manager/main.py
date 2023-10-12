@@ -43,10 +43,10 @@ def user_window():
     Label(window_user, text="", bg=background_color).pack()
     # Boton añadir contraseña
     Button(window_user, text="Añadir contraseña", height="2", width="30", bg="#FFFFFF",
-           command=añadir_contraseña).pack()
+           command=add_password_window).pack()
     # Boton eliminar contraseña
     Button(window_user, text="Eliminar contraseña", height="2", width="30", bg="#FFFFFF",
-           command=eliminar_contraseña).pack()
+           command=delete_password_window).pack()
     # Boton cerrar sesión
     Button(window_user, text="Log out", height="2", width="30", bg="#FFFFFF", command=logout).pack()
     window_user.pack()
@@ -80,14 +80,28 @@ def register_user():
     except ValueError as e:
         messagebox.showerror(title='Error', message=e)
 
-# FUNCION AÑADIR CONTRASEÑA DEL USUARIO
-def añadir_contraseña():
-    """Llama a la funcion añadir contraseña"""
-    pass
+# VENTANA AÑADIR CONTRASEÑA DEL USUARIO
+def add_password_window():
+    """Ventana añadir contraseña"""
+    Label(window_add_password, bg=background_color, fg='#ffF', text="Website * ").pack()
+    Entry(window_add_password, textvariable=web).pack()
 
-# FUNCION ELIMINAR CONTRASEÑA DEL USUARIO
-def eliminar_contraseña():
-    """Llama a la funcion eliminar contraseña"""
+    Label(window_add_password, bg=background_color, fg='#ffF', text="Password * ").pack()
+    Entry(window_add_password, textvariable=web_password).pack()
+
+    Label(window_add_password, bg=background_color, fg='#ffF', text="Note").pack()
+    Entry(window_add_password, textvariable=web_note).pack()
+
+    # Add padding between input fields and button
+    Label(window_add_password, text="", bg=background_color).pack()
+
+    Button(window_add_password, text="Add", height="2", width="30", bg="#FFFFFF", command=add_password).pack()
+
+    window_add_password.pack()
+
+# VENTANA ELIMINAR CONTRASEÑA DEL USUARIO
+def delete_password_window():
+    """Ventana eliminar contraseña"""
     pass
 
 # FUNCION CERRAR SESIÓN USUARIO
@@ -95,9 +109,12 @@ def logout():
     """Cerrar sesión"""
     messagebox.showinfo(message="Sesión cerrada correctamente")
     user_actual.__del__()
+    # Remove all labels and entries from the login
     window_login.forget()
     window_user.forget()
     window_register.forget()
+    window_add_password.forget()
+    # window_delete_password.forget()
     password.set("")
     username.set("")
     window_home.pack()
@@ -106,6 +123,18 @@ def logout():
 def check_password(passw):
     Password(passw).value
 
+def add_password():
+    """Añadir contraseña"""
+    user_actual.add_password(web.get(), web_password.get(), web_note.get())
+    messagebox.showinfo(message="Contraseña añadida correctamente")
+    # Remove all labels and entries from the window_add_password
+    for widget in window_add_password.winfo_children():
+        widget.destroy()
+    # Reset the values of the StringVars
+    web.set("")
+    web_password.set("")
+    web_note.set("")
+    # user_window()
 
 #----CARACTERISTICAS VENTANA----
 background_color = "#2D2D2D"
@@ -117,9 +146,15 @@ window_principal.title("Gestor de contraseñas")
 #----VARIABES GLOBALES----
 global username
 global password
+global web
+global web_password
+global web_note
 global user_actual
 username = StringVar()
 password = StringVar()
+web = StringVar()
+web_password = StringVar()
+web_note = StringVar()
 user_actual = User()
 
 #----VENTANA HOME----
@@ -175,6 +210,12 @@ Button(window_register, text="sign up", height="2", width="30", bg="#FFFFFF", co
 # ----VENTANA USUARIO----
 window_user = Frame(window_principal)
 window_user.config(width=300, height=250, bg=background_color)
+
+# ----VENTANA AÑADIR CONTRASEÑA----
+window_add_password = Frame(window_principal)
+window_add_password.config(width=300, height=250, bg=background_color)
+
+# ----VENTANA ELIMINAR CONTRASEÑA----
 
 window_principal.mainloop()
 

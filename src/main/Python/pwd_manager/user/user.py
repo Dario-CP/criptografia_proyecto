@@ -127,10 +127,10 @@ class User():
         pass
         # print("User logged out")
 
-    def añadir(self):
+    def add_password(self, web, web_password, web_note):
         pass
 
-    def eliminar(self):
+    def delete_password(self):
         pass
 
     @property
