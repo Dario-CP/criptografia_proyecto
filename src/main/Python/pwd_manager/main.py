@@ -77,8 +77,8 @@ def register_user():
         messagebox.showinfo(title='Registrado', message="Registrado correctamente")
         window_register.forget()
         user_window()
-    except ValueError:
-        messagebox.showerror(title='Error', message="Nombre de usuario ya registrado")
+    except ValueError as e:
+        messagebox.showerror(title='Error', message=e)
 
 # FUNCION AÑADIR CONTRASEÑA DEL USUARIO
 def añadir_contraseña():
@@ -102,9 +102,9 @@ def logout():
     username.set("")
     window_home.pack()
 
-def check_password(passw):
-    x = Password(passw).value
 
+def check_password(passw):
+    Password(passw).value
 
 
 #----CARACTERISTICAS VENTANA----
