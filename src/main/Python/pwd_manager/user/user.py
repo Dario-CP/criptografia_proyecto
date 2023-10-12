@@ -29,10 +29,8 @@ class User():
         self.password = password
         login = self.check_user()
         if login:
-            print("Login successful")
             return self.username
         else:
-            print("Login failed")
             return None
 
     def register_user(self, username, password):
