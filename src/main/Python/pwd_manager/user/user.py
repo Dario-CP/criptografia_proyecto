@@ -6,9 +6,10 @@ import uuid
 import json
 import os
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
+from pwd_manager.storage.user_json_store import UserStore
 from pathlib import Path
 
-JSON_FILES_PATH = str(Path.home()) + "/PycharmProjects/criptografia_proyecto/src/data/"
+JSON_FILES_PATH = str(Path.home()) + "/Desktop/python_projects/criptografia_proyecto/src/data/"
 #Carrero PATH /PycharmProjects/criptografia_proyecto/src/data/
 #Dario PATH /Desktop/python_projects/criptografia_proyecto/src/data/
 
@@ -21,7 +22,7 @@ class User():
     def __init__(self):
         self.username = ""
         self.password = ""
-        self.user_id = self.generate_uuid()
+        self.user_id = ""
 
     def login_user(self, username, password):
         """Login the user"""
@@ -37,6 +38,7 @@ class User():
         """Register the user into the users file"""
         self.username = username
         self.password = password
+        self.user_id = self.generate_uuid()
         self.save_user()
         return self.username
 
@@ -47,33 +49,20 @@ class User():
 
     def save_user(self):
         """Save the user into the user's JSON file"""
-        # Read the users.json file
-        users = self.get_users()
+        # Check if the user is already registered
+        user = UserStore().find_item(self.username, "user_name")
+        if user is not None:
+            raise ValueError("Username already taken")
+
         salt_password = self.derive_password()
-        if users == []:
-            users.append({
-                "user_name": self.username,
-                "password": str(salt_password[1]),
-                "salt": str(salt_password[0]),
-                "user_id": str(self.user_id)
-                })
-        else:
-            # Check that the user is not already registered
-            for user in users:
-                if user["user_name"] == self.username:
-                    raise ValueError("Username already taken")
+        user_dict = {
+                    "user_name": self.username,
+                    "password": str(salt_password[1]),
+                    "salt": str(salt_password[0]),
+                    "user_id": str(self.user_id)
+                    }
+        UserStore().add_item(user_dict)
 
-            # Add the new user to the users list
-            users.append({
-                "user_name": self.username,
-                "password": str(salt_password[1]),
-                "salt": str(salt_password[0]),
-                "user_id": str(self.user_id)
-            })
-
-        # Write the users.json file
-        with open(JSON_FILES_PATH + 'users.json', 'w', encoding='utf-8') as file:
-            json.dump(users, file, indent=2)
 
     def check_user(self):
         """Checks if the user is registered with the given password"""
@@ -81,6 +70,7 @@ class User():
         users = self.get_users()
         for user in users:
             if user["user_name"] == self.username and self.check_password(eval(user["salt"]), eval(user["password"])):
+                self.user_id = user["user_id"]
                 return True
         return False
 

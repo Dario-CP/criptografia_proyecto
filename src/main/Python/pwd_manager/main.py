@@ -122,6 +122,7 @@ def logout():
     # Remove all labels and entries from the window_user
     for widget in window_user.winfo_children():
         widget.destroy()
+    window_user.forget()
     window_register.forget()
     window_add_password.forget()
     # window_delete_password.forget()
