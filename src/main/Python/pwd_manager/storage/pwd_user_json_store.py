@@ -6,7 +6,7 @@ class PwdStore(JsonStore):
     _ID_FIELD = "user_name"
 
     def add_item(self, item, id):
-        self._FILE_PATH += id
+        self._FILE_PATH += str(id)
         self._FILE_PATH += ".json"
         if not isinstance(item, dict):
             raise ValueError("Invalid object")
