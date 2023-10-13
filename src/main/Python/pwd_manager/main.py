@@ -1,12 +1,12 @@
 """
 Main file for the password manager.
 """
-#------------------------------------
-from tkinter import * #type: ignore
+# ------------------------------------
+from tkinter import *  # type: ignore
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
-#------------------------------------
+# ------------------------------------
 from pwd_manager.user.user import User
 from attributes.attribute_password import Password
 
@@ -26,6 +26,7 @@ def register_window():
         window_login.forget()
         window_home.forget()
 
+
 # FUNCIÓN QUE CREA LA VENTANA LOG IN
 def login_window():
     """Log in window"""
@@ -34,6 +35,7 @@ def login_window():
     if window_register:
         window_register.forget()
         window_home.forget()
+
 
 # FUNCIÓN QUE CREA LA VENTANA DEL USUARIO
 def user_window():
@@ -51,34 +53,6 @@ def user_window():
     Button(window_user, text="Log out", height="2", width="30", bg="#FFFFFF", command=logout).pack()
     window_user.pack()
 
-# FUNCION IR PARA ATRAS
-def back():
-    window_register.forget()
-    window_login.forget()
-    window_home.pack()
-
-# FUNCIÓN INICIAR SESIÓN
-def login_user():
-    """Iniciar sesion"""
-    logged = user_actual.login_user(username.get(), password.get())
-    if logged:
-        messagebox.showinfo(message="Sesión iniciada correctamente")
-        window_login.forget()
-        user_window()
-    else:
-        messagebox.showerror(message="Error de inicio de sesión")
-
-# FUNCION REGISTRAR USUARIO
-def register_user():
-    """Registrar usuario"""
-    try:
-        check_password(password.get())
-        user_actual.register_user(username.get(), password.get())
-        messagebox.showinfo(title='Registrado', message="Registrado correctamente")
-        window_register.forget()
-        user_window()
-    except ValueError as e:
-        messagebox.showerror(title='Error', message=e)
 
 # VENTANA AÑADIR CONTRASEÑA DEL USUARIO
 def add_password_window():
@@ -99,10 +73,44 @@ def add_password_window():
 
     window_add_password.pack()
 
+
 # VENTANA ELIMINAR CONTRASEÑA DEL USUARIO
 def delete_password_window():
     """Ventana eliminar contraseña"""
     pass
+
+
+# FUNCION IR PARA ATRAS
+def back():
+    window_register.forget()
+    window_login.forget()
+    window_home.pack()
+
+
+# FUNCIÓN INICIAR SESIÓN
+def login_user():
+    """Iniciar sesion"""
+    logged = user_actual.login_user(username.get(), password.get())
+    if logged:
+        messagebox.showinfo(message="Sesión iniciada correctamente")
+        window_login.forget()
+        user_window()
+    else:
+        messagebox.showerror(message="Error de inicio de sesión")
+
+
+# FUNCION REGISTRAR USUARIO
+def register_user():
+    """Registrar usuario"""
+    try:
+        check_password(password.get())
+        user_actual.register_user(username.get(), password.get())
+        messagebox.showinfo(title='Registrado', message="Registrado correctamente")
+        window_register.forget()
+        user_window()
+    except ValueError as e:
+        messagebox.showerror(title='Error', message=e)
+
 
 # FUNCION CERRAR SESIÓN USUARIO
 def logout():
@@ -111,7 +119,9 @@ def logout():
     user_actual.__del__()
     # Remove all labels and entries from the login
     window_login.forget()
-    window_user.forget()
+    # Remove all labels and entries from the window_user
+    for widget in window_user.winfo_children():
+        widget.destroy()
     window_register.forget()
     window_add_password.forget()
     # window_delete_password.forget()
@@ -122,6 +132,7 @@ def logout():
 
 def check_password(passw):
     Password(passw).value
+
 
 def add_password():
     """Añadir contraseña"""
@@ -136,14 +147,15 @@ def add_password():
     web_note.set("")
     # user_window()
 
-#----CARACTERISTICAS VENTANA----
+
+# ----CARACTERISTICAS VENTANA----
 background_color = "#2D2D2D"
 window_principal = tk.Tk()
 window_principal.config(bg=background_color)
 window_principal.geometry("1500x800")
 window_principal.title("Gestor de contraseñas")
 
-#----VARIABES GLOBALES----
+# ----VARIABES GLOBALES----
 global username
 global password
 global web
@@ -157,19 +169,19 @@ web_password = StringVar()
 web_note = StringVar()
 user_actual = User()
 
-#----VENTANA HOME----
+# ----VENTANA HOME----
 window_home = Frame(window_principal)
 window_home.config(width=300, height=250, bg=background_color)
 window_home.pack()
 Label(window_home, text="", bg=background_color, fg='#ffF').pack()
 # Boton de iniciar sesión
 Button(window_home, text="Log in", height="2", width="30", bg="#FFFFFF", command=login_window).pack()
-Label(window_home,text="", bg=background_color, fg='#ffF').pack()
+Label(window_home, text="", bg=background_color, fg='#ffF').pack()
 # Boton de registrar
 Button(window_home, text="Register", height="2", width="30", bg="#FFFFFF", command=register_window).pack()
 Label(window_home, text="", bg=background_color, fg='#ffF').pack()
 
-#----VENTANA LOG IN----
+# ----VENTANA LOG IN----
 window_login = Frame(window_principal)
 window_login.config(width=300, height=250, bg=background_color)
 Label(window_login, text="", bg=background_color, fg='#ffF').pack()
@@ -188,7 +200,7 @@ Label(window_login, text="", bg=background_color).pack()
 # Boton de log in
 Button(window_login, text="log in", height="2", width="30", bg="#FFFFFF", command=login_user).pack()
 
-#----VENTANA REGISTRAR----
+# ----VENTANA REGISTRAR----
 window_register = Frame(window_principal)
 window_register.config(width=300, height=250, bg=background_color)
 Label(window_register, text="", bg=background_color, fg='#ffF').pack()
@@ -202,7 +214,7 @@ Label(window_register, bg=background_color, fg='#ffF', text="Username * ").pack(
 Entry(window_register, textvariable=username).pack()
 # Contraseña
 Label(window_register, bg=background_color, fg='#ffF', text="Password * ").pack()
-Entry(window_register, textvariable=password, show='*').pack()
+Entry(window_register, textvariable=password, show='').pack()
 Label(window_register, text="", bg=background_color).pack()
 # Boton de registrar
 Button(window_register, text="sign up", height="2", width="30", bg="#FFFFFF", command=register_user).pack()
