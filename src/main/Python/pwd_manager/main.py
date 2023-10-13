@@ -90,13 +90,13 @@ def back():
 # FUNCIÓN INICIAR SESIÓN
 def login_user():
     """Iniciar sesion"""
-    logged = user_actual.login_user(username.get(), password.get())
-    if logged:
+    try:
+        user_actual.login_user(username.get(), password.get())
         messagebox.showinfo(message="Sesión iniciada correctamente")
         window_login.forget()
         user_window()
-    else:
-        messagebox.showerror(message="Error de inicio de sesión")
+    except ValueError as e:
+        messagebox.showerror(message=e)
 
 
 # FUNCION REGISTRAR USUARIO
@@ -215,7 +215,7 @@ Label(window_register, bg=background_color, fg='#ffF', text="Username * ").pack(
 Entry(window_register, textvariable=username).pack()
 # Contraseña
 Label(window_register, bg=background_color, fg='#ffF', text="Password * ").pack()
-Entry(window_register, textvariable=password, show='').pack()
+Entry(window_register, textvariable=password, show='*').pack()
 Label(window_register, text="", bg=background_color).pack()
 # Boton de registrar
 Button(window_register, text="sign up", height="2", width="30", bg="#FFFFFF", command=register_user).pack()

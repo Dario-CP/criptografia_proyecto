@@ -42,7 +42,7 @@ class JsonStore:
         # create data_list
         data_list = self.load()
         # add item to data_list
-        data_list.append(item.__dict__)
+        data_list.append(item)
         # save the data_list
         self.save(data_list)
 

@@ -7,6 +7,7 @@ import json
 import os
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from pwd_manager.storage.user_json_store import UserStore
+from pwd_manager.storage.pwd_user_json_store import PwdStore
 from pathlib import Path
 
 JSON_FILES_PATH = str(Path.home()) + "/Desktop/python_projects/criptografia_proyecto/src/data/"
@@ -28,11 +29,17 @@ class User():
         """Login the user"""
         self.username = username
         self.password = password
-        login = self.check_user()
-        if login:
-            return self.username
-        else:
-            return None
+        users = UserStore().load()
+        for user in users:
+            if user["user_name"] == self.username:
+                login = self.check_password(eval(user["salt"]),eval(user["password"]))
+                if login:
+                    self.user_id = user["user_id"]
+                    return self.username
+                else:
+                    raise ValueError("Nombre de usuario o contraseña incorrectas")
+            else:
+                raise ValueError("Nombre de usuario o contraseña incorrectas")
 
     def register_user(self, username, password):
         """Register the user into the users file"""
@@ -52,7 +59,7 @@ class User():
         # Check if the user is already registered
         user = UserStore().find_item(self.username, "user_name")
         if user is not None:
-            raise ValueError("Username already taken")
+            raise ValueError("Nombre de usuario ya en uso")
 
         salt_password = self.derive_password()
         user_dict = {
@@ -63,27 +70,6 @@ class User():
                     }
         UserStore().add_item(user_dict)
 
-
-    def check_user(self):
-        """Checks if the user is registered with the given password"""
-        # Read the users.json file
-        users = self.get_users()
-        for user in users:
-            if user["user_name"] == self.username and self.check_password(eval(user["salt"]), eval(user["password"])):
-                self.user_id = user["user_id"]
-                return True
-        return False
-
-
-    def get_users(self):
-        """Returns a list of all the users"""
-        # Read the users.json file
-        try:
-            with open(JSON_FILES_PATH + 'users.json', 'r') as file:
-                users = json.load(file)
-        except FileNotFoundError:
-            users = []
-        return users
 
     def derive_password(self):
         salt = os.urandom(16)
@@ -97,6 +83,7 @@ class User():
         )
         key = kdf.derive(self.password.encode())    # .encode to convert str to bytes
         return salt, key
+
 
     def check_password(self, salt, key):
         # verify
@@ -115,10 +102,14 @@ class User():
 
     def __del__(self):
         pass
-        # print("User logged out")
 
     def add_password(self, web, web_password, web_note):
-        pass
+        pwd_dict = {
+                    "web": web,
+                    "web_password": web_password,
+                    "web_note": web_note,
+        }
+        PwdStore().add_item(pwd_dict, self.user_id)
 
     def delete_password(self):
         pass
