@@ -6,9 +6,12 @@ class PwdStore(JsonStore):
     _FILE_PATH = JSON_FILES_PATH + "pwd_users/"
     _ID_FIELD = "user_name"
 
-    def add_item(self, item, id):
+    def set_file_path(self, id):
         self._FILE_PATH += str(id)
         self._FILE_PATH += ".json"
+
+    def add_item(self, item, id):
+        self.set_file_path(id)
         if not isinstance(item, dict):
             raise ValueError("Invalid object")
         super().add_item(item)

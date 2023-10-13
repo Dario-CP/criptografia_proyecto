@@ -44,13 +44,16 @@ def user_window():
     Label(window_user, text="Usuario: " + user_actual.username, fg='#ffF', bg=background_color).pack()
     Label(window_user, text="", bg=background_color).pack()
     # Boton añadir contraseña
-    Button(window_user, text="Añadir contraseña", height="2", width="30", bg="#FFFFFF",
+    data = Button(window_user, text="Añadir contraseña", height="2", width="30", bg="#FFFFFF",
            command=add_password_window).pack()
     # Boton eliminar contraseña
     Button(window_user, text="Eliminar contraseña", height="2", width="30", bg="#FFFFFF",
            command=delete_password_window).pack()
     # Boton cerrar sesión
     Button(window_user, text="Log out", height="2", width="30", bg="#FFFFFF", command=logout).pack()
+    #if data is not None:
+    #    for pwd in data:
+     #       Label(window_user, text=pwd, fg='#ffF', bg=background_color).pack()
     window_user.pack()
 
 

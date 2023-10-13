@@ -110,6 +110,7 @@ class User:
             "web_note": web_note,
         }
         PwdStore().add_item(pwd_dict, self.user_id)
+        #return PwdStore().load()
 
     def delete_password(self):
         pass
