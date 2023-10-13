@@ -1,7 +1,8 @@
 """This module will describe the class to properly set the attributes"""
 import re
 
-class Attribute():
+
+class Attribute:
     _validation_pattern = r""
     _validation_error_message = ""
     _value = ""
@@ -12,6 +13,7 @@ class Attribute():
     @property
     def value(self):
         return self._value
+
     @value.setter
     def value(self, attr_value):
         self._value = self._validate(attr_value)
