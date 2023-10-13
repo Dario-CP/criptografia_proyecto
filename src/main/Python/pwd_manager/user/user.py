@@ -44,8 +44,7 @@ class User:
                     return self.username
                 else:
                     raise ValueError("Nombre de usuario o contraseña incorrectas")
-            else:
-                raise ValueError("Nombre de usuario o contraseña incorrectas")
+        raise ValueError("Nombre de usuario o contraseña incorrectas")
 
     def register_user(self, username, password):
         """Register the user into the users file"""
