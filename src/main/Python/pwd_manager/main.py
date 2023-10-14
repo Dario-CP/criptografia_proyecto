@@ -215,7 +215,7 @@ Label(window_register, text="", bg=background_color, fg='#ffF').pack()
 Label(window_register, text="Please enter details below to login", fg='#ffF', bg=background_color).pack()
 Label(window_register, text="Password details:\n1.-At least 8 characters\n2.-At least 1 letter in caps\n3.-At least a "
                             "number\n4.-At least one special character (?!@$&*-.)", fg='#ffF',
-                            bg=background_color, justify= "left").pack()
+                            bg=background_color, justify="left").pack()
 Label(window_register, text="", bg=background_color).pack()
 # FORMULARIO REGISTRO DE DATOS
 # Usuario
