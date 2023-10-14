@@ -49,7 +49,7 @@ def user_window():
     Button(window_user, text="Eliminar contraseña", height="2", width="30", bg="#FFFFFF", command=delete_password_window).pack()
     # Boton cerrar sesión
     Button(window_user, text="Log out", height="2", width="30", bg="#FFFFFF", command=logout).pack()
-    data = user_actual.pwds()
+    data = user_actual.stored_passwords
     if data is not None:
         for pwd in data:
             Label(window_user, text="", bg=background_color).pack()

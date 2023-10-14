@@ -10,6 +10,10 @@ class PwdStore(JsonStore):
         self._FILE_PATH += str(id)
         self._FILE_PATH += ".json"
 
+    def save(self, data_list, id):
+        self.set_file_path(id)
+        super().save(data_list)
+
     def add_item(self, item, id):
         self.set_file_path(id)
         if not isinstance(item, dict):
