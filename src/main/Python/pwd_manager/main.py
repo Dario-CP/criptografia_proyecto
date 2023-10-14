@@ -44,36 +44,35 @@ def user_window():
     Label(window_user, text="Usuario: " + user_actual.username, fg='#ffF', bg=background_color).pack()
     Label(window_user, text="", bg=background_color).pack()
     # Boton añadir contraseña
-    data = Button(window_user, text="Añadir contraseña", height="2", width="30", bg="#FFFFFF",
-           command=add_password_window).pack()
+    Button(window_user, text="Añadir contraseña", height="2", width="30", bg="#FFFFFF",command=add_password_window).pack()
     # Boton eliminar contraseña
-    Button(window_user, text="Eliminar contraseña", height="2", width="30", bg="#FFFFFF",
-           command=delete_password_window).pack()
+    Button(window_user, text="Eliminar contraseña", height="2", width="30", bg="#FFFFFF", command=delete_password_window).pack()
     # Boton cerrar sesión
     Button(window_user, text="Log out", height="2", width="30", bg="#FFFFFF", command=logout).pack()
-    #if data is not None:
-    #    for pwd in data:
-     #       Label(window_user, text=pwd, fg='#ffF', bg=background_color).pack()
+    data = user_actual.pwds()
+    if data is not None:
+        for pwd in data:
+            Label(window_user, text="", bg=background_color).pack()
+            Label(window_user, text=pwd, fg='#ffF', bg="#000000").pack()
     window_user.pack()
 
 
 # VENTANA AÑADIR CONTRASEÑA DEL USUARIO
 def add_password_window():
     """Ventana añadir contraseña"""
+    # FORMULARIO DATOS AÑADIR UNA NUEVA CONTRASEÑA
+    # Web
     Label(window_add_password, bg=background_color, fg='#ffF', text="Website * ").pack()
     Entry(window_add_password, textvariable=web).pack()
-
+    # Contraseña de la web
     Label(window_add_password, bg=background_color, fg='#ffF', text="Password * ").pack()
     Entry(window_add_password, textvariable=web_password).pack()
-
+    # Descripción/Nota sobre la web o contraseña
     Label(window_add_password, bg=background_color, fg='#ffF', text="Note").pack()
     Entry(window_add_password, textvariable=web_note).pack()
-
     # Add padding between input fields and button
     Label(window_add_password, text="", bg=background_color).pack()
-
     Button(window_add_password, text="Add", height="2", width="30", bg="#FFFFFF", command=add_password).pack()
-
     window_add_password.pack()
 
 
@@ -120,7 +119,7 @@ def logout():
     """Cerrar sesión"""
     messagebox.showinfo(message="Sesión cerrada correctamente")
     user_actual.__del__()
-    # Remove all labels and entries from the login
+    # Forget all labels and entries from the login
     window_login.forget()
     # Remove all labels and entries from the window_user
     for widget in window_user.winfo_children():
@@ -149,7 +148,10 @@ def add_password():
     web.set("")
     web_password.set("")
     web_note.set("")
-    # user_window()
+    # Remove all labels and entries from the window_user
+    for widget in window_user.winfo_children():
+        widget.destroy()
+    user_window()
 
 
 # ----CARACTERISTICAS VENTANA----
@@ -211,6 +213,9 @@ Label(window_register, text="", bg=background_color, fg='#ffF').pack()
 Button(window_register, text="Back", height="2", width="30", bg="#FFFFFF", command=back).pack()
 Label(window_register, text="", bg=background_color, fg='#ffF').pack()
 Label(window_register, text="Please enter details below to login", fg='#ffF', bg=background_color).pack()
+Label(window_register, text="Password details:\n1.-At least 8 characters\n2.-At least 1 letter in caps\n3.-At least a "
+                            "number\n4.-At least one special character (?!@$&*-.)", fg='#ffF',
+                            bg=background_color, justify= "left").pack()
 Label(window_register, text="", bg=background_color).pack()
 # FORMULARIO REGISTRO DE DATOS
 # Usuario

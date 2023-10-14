@@ -20,3 +20,8 @@ class PwdStore(JsonStore):
         if key is None:
             key = self._ID_FIELD
         return super().find_item(key_value, key)
+
+    def lists(self,id):
+        self.set_file_path(id)
+        lists = super().load()
+        return lists
