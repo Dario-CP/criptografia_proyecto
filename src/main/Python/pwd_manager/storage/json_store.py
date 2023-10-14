@@ -68,3 +68,28 @@ class JsonStore:
             if item[key] == key_value:
                 data_list_result.append(item)
         return data_list_result
+
+    def delete_item(self, key_value, key=None):
+        """ Deletes an item with key_value value """
+        data_list = self.load()
+        if key is None:
+            key = self._ID_FIELD
+        for item in data_list:
+            if item[key] == key_value:
+                data_list.remove(item)
+                self.save(data_list)
+                return True
+        return False
+
+    def update_item(self, key_value, new_item, key=None):
+        """ Updates an item with key_value value """
+        data_list = self.load()
+        if key is None:
+            key = self._ID_FIELD
+        for item in data_list:
+            if item[key] == key_value:
+                data_list.remove(item)
+                data_list.append(new_item)
+                self.save(data_list)
+                return True
+        return False

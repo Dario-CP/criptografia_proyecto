@@ -4,7 +4,9 @@ User module for the password manager.
 
 import uuid
 import os
+import base64
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
+from cryptography.fernet import Fernet
 from pwd_manager.storage.user_json_store import UserStore
 from pwd_manager.storage.pwd_user_json_store import PwdStore
 from pathlib import Path
@@ -24,6 +26,7 @@ class User:
         self.__username = ""
         self.__password = ""
         self.__user_id = ""
+        self.__encryption_salt = ""
         self.__stored_passwords = []
 
     def login_user(self, username, password):
@@ -37,7 +40,11 @@ class User:
                 if login:
                     self.__user_id = user["user_id"]
                     # Read the passwords from the user after login
-                    self.__stored_passwords = PwdStore().lists(self.user_id)
+                    # We decrypt the passwords with Fernet using the user's password as key
+                    encrypted_passwords = PwdStore().lists(self.user_id)
+                    if encrypted_passwords != []:
+                        self.__stored_passwords = eval(self.auth_decrypt(eval(encrypted_passwords),
+                                                                         eval(user["encryption_salt"])))
                     return self.__username
                 else:
                     raise ValueError("Nombre de usuario o contraseña incorrectas")
@@ -48,7 +55,9 @@ class User:
         self.__username = username
         self.__password = password
         self.__user_id = generate_uuid()
-        self.__save_user()
+        user = UserStore().find_item(self.__username, "user_name")
+        if user is not None:
+            raise ValueError("Nombre de usuario ya en uso")
         return self.__username
 
     # Method to generate uuid
@@ -57,20 +66,28 @@ class User:
         """Save the user into the user's JSON file"""
         # Check if the user is already registered
         user = UserStore().find_item(self.__username, "user_name")
-        if user is not None:
-            raise ValueError("Nombre de usuario ya en uso")
-
+        # We always generate a new salt and key (derived password)
         salt_password = self.derive_password()
         user_dict = {
             "user_name": self.__username,
             "password": str(salt_password[1]),
             "salt": str(salt_password[0]),
+            "encryption_salt": str(self.__encryption_salt),
             "user_id": str(self.__user_id)
         }
-        UserStore().add_item(user_dict)
+        # If the user is not registered, add the user to the users file
+        if user is None:
+            UserStore().add_item(user_dict)
+        # If the user is already registered (when the user logged in), update the user's data
+        # to rotate the salt and the key
+        else:
+            UserStore().update_item(self.__username, user_dict, "user_name")
 
-    def derive_password(self):
-        salt = os.urandom(16)
+
+    def derive_password(self, salt=None):
+        if salt is None:
+            # generate salt
+            salt = os.urandom(16)
         # derive
         kdf = Scrypt(
             salt=salt,
@@ -97,8 +114,37 @@ class User:
         except:
             return False
 
+    def auth_encrypt(self, data):
+        # Call the derive_password method to get the salt and the key
+        # Each time we encrypt, we use a new salt, so the encryption key is different each time
+        # The encryption key is derived from the user's password (the one introduced when the user logged in)
+        salt, key = self.derive_password()
+        # Create the Fernet object with the key
+        f = Fernet(base64.urlsafe_b64encode(key))
+        # Encrypt the data
+        data = str(data)
+        encrypted_data = f.encrypt(data.encode())
+        # Return the encrypted data and the salt
+        return encrypted_data, salt
+
+    def auth_decrypt(self, data, salt):
+        # Obtain the key from the user's password and the encryption salt
+        key = self.derive_password(salt)[1]
+        # Create the Fernet object with the key
+        f = Fernet(base64.urlsafe_b64encode(key))
+        # Decrypt the data
+        decrypted_data = f.decrypt(data)
+        # Return the decrypted data
+        return decrypted_data
 
     def add_password(self, web, web_password, web_note):
+        # Check if the web is already stored
+        for pwd in self.__stored_passwords:
+            if pwd["web"] == web:
+                raise ValueError("Este sitio de contraseña ya está almacenado."
+                                 "\nPara añadir otra contraseña para el mismo sitio,"
+                                 "\nutilize un nombre identificativo diferente")
+        # Create the password dictionary
         pwd_dict = {
             "web": web,
             "web_password": web_password,
@@ -107,8 +153,14 @@ class User:
         # Append the password dictionary to the user's passwords list
         self.__stored_passwords.append(pwd_dict)
 
-    def delete_password(self):
-        pass
+    def delete_password(self, web):
+        # Find the password to delete
+        for pwd in self.__stored_passwords:
+            if pwd["web"] == web:
+                # Delete the password
+                self.__stored_passwords.remove(pwd)
+                return True
+        raise ValueError("Sitio de contraseña no encontrado")
 
 
     @property
@@ -148,5 +200,8 @@ class User:
         self.__stored_passwords = value
 
     def __del__(self):
-        # Before deleting the user, save the passwords
-        PwdStore().save(self.__stored_passwords, self.__user_id)
+        # Before deleting the user, save the user and their passwords
+        # We encrypt the passwords with Fernet using the user's password as key
+        encrypted_passwords, self.__encryption_salt = self.auth_encrypt(self.__stored_passwords)
+        self.save_user()
+        PwdStore().save(str(encrypted_passwords), self.__user_id)
