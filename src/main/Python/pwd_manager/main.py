@@ -116,7 +116,6 @@ def login_user():
 def register_user():
     """Registrar usuario"""
     try:
-        check_password(password.get())
         user_actual.register_user(username.get(), password.get())
         messagebox.showinfo(title='Registrado', message="Registrado correctamente")
         window_register.forget()
@@ -128,8 +127,12 @@ def register_user():
 # FUNCION CERRAR SESIÓN USUARIO
 def logout():
     """Cerrar sesión"""
+
+    # Delete the user_actual object and create a new one
+    global user_actual
+    user_actual = User()
+
     messagebox.showinfo(message="Sesión cerrada correctamente")
-    user_actual.__del__()
     # Forget all labels and entries from the login
     window_login.forget()
     # Remove all labels and entries from the window_user
@@ -142,11 +145,6 @@ def logout():
     password.set("")
     username.set("")
     window_home.pack()
-
-
-def check_password(passw):
-    Password(passw).value
-
 
 def add_password():
     """Añadir contraseña"""
@@ -274,6 +272,4 @@ window_delete_password.config(width=300, height=250, bg=background_color)
 
 window_principal.mainloop()
 
-# TODO: Corregir que se puedan generar ventanas infinitas de login y register
-# TODO: Limpiar y comentar código
-# TODO: Encriptación
+# TODO: Corregir consistencia de idioma en la interfaz

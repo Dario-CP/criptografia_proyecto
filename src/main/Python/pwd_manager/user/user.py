@@ -7,15 +7,9 @@ import os
 import base64
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.fernet import Fernet
-from pwd_manager.storage.user_json_store import UserStore
 from pwd_manager.storage.pwd_user_json_store import PwdStore
-from pathlib import Path
-
-
-def generate_uuid():
-    """Generates a uuid"""
-    return uuid.uuid4()
-
+from pwd_manager.manager.manager import Manager
+from pwd_manager.attributes.attribute_password import Password
 
 class User:
     """
@@ -28,48 +22,59 @@ class User:
         self.__user_id = ""
         self.__encryption_salt = ""
         self.__stored_passwords = []
+        self.__manager = Manager()
 
     def login_user(self, username, password):
         """Login the user"""
+        user = self.__manager.get_user_info(username)
+        if user is None:
+            raise ValueError("Nombre de usuario o contraseña incorrectas")
+
         self.__username = username
         self.__password = password
-        users = UserStore().load()
-        for user in users:
-            if user["user_name"] == self.__username:
-                login = self.check_password(eval(user["salt"]), eval(user["password"]))
-                if login:
-                    self.__user_id = user["user_id"]
-                    # Read the passwords from the user after login
-                    # We decrypt the passwords with Fernet using the user's password as key
-                    encrypted_passwords = PwdStore().lists(self.user_id)
-                    if encrypted_passwords != []:
-                        self.__stored_passwords = eval(self.auth_decrypt(eval(encrypted_passwords),
-                                                                         eval(user["encryption_salt"])))
-                    return self.__username
-                else:
-                    raise ValueError("Nombre de usuario o contraseña incorrectas")
-        raise ValueError("Nombre de usuario o contraseña incorrectas")
+
+        login = self.check_password(eval(user["salt"]), eval(user["password"]))
+        if login:
+            self.__user_id = user["user_id"]
+            # Read the passwords from the user after login
+            # We decrypt the passwords with Fernet using the user's password as key
+            encrypted_passwords = PwdStore().lists(self.user_id)
+            if encrypted_passwords != []:
+                self.__stored_passwords = eval(self.auth_decrypt(eval(encrypted_passwords),
+                                                                 eval(user["encryption_salt"])))
+            return self.__username
+        else:
+            raise ValueError("Nombre de usuario o contraseña incorrectas")
+
 
     def register_user(self, username, password):
         """Register the user into the users file"""
-        self.__username = username
-        self.__password = password
-        self.__user_id = generate_uuid()
-        user = UserStore().find_item(self.__username, "user_name")
+        # Check if the username is empty
+        if username == "":
+            raise ValueError("El nombre de usuario no puede estar vacío")
+        # Check if the password meets the requirements
+        Password(password).value
+        # Remember that we store the information on user's logout
+        user = self.__manager.get_user_info(username)
         if user is not None:
             raise ValueError("Nombre de usuario ya en uso")
+
+        self.__username = username
+        self.__password = password
+        self.__user_id = uuid.uuid4()
+
         return self.__username
 
-    # Method to generate uuid
+
 
     def save_user(self):
         """Save the user into the user's JSON file"""
         # Check if the user is already registered
-        user = UserStore().find_item(self.__username, "user_name")
+        user = self.__manager.get_user_info(self.__username)
         # We always generate a new salt and key (derived password)
         salt_password = self.derive_password()
         user_dict = {
-            "user_name": self.__username,
+            "username": self.__username,
             "password": str(salt_password[1]),
             "salt": str(salt_password[0]),
             "encryption_salt": str(self.__encryption_salt),
@@ -77,11 +82,11 @@ class User:
         }
         # If the user is not registered, add the user to the users file
         if user is None:
-            UserStore().add_item(user_dict)
+            self.__manager.add_user(user_dict)
         # If the user is already registered (when the user logged in), update the user's data
         # to rotate the salt and the key
         else:
-            UserStore().update_item(self.__username, user_dict, "user_name")
+            self.__manager.update_user(user_dict)
 
 
     def derive_password(self, salt=None):
@@ -138,6 +143,12 @@ class User:
         return decrypted_data
 
     def add_password(self, web, web_password, web_note):
+        # Check if the web is empty
+        if web == "":
+            raise ValueError("El sitio de contraseña no puede estar vacío")
+        # Check if the web_password is empty
+        if web_password == "":
+            raise ValueError("La contraseña no puede estar vacía")
         # Check if the web is already stored
         for pwd in self.__stored_passwords:
             if pwd["web"] == web:
@@ -165,7 +176,7 @@ class User:
 
     @property
     def username(self):
-        """gets the user_name value"""
+        """gets the username value"""
         return self.__username
 
     @username.setter
@@ -203,5 +214,9 @@ class User:
         # Before deleting the user, save the user and their passwords
         # We encrypt the passwords with Fernet using the user's password as key
         encrypted_passwords, self.__encryption_salt = self.auth_encrypt(self.__stored_passwords)
-        self.save_user()
         PwdStore().save(str(encrypted_passwords), self.__user_id)
+        # We add the users to the users file in the manager
+        self.save_user()
+        # We encrypt the users file with Fernet using the master password as key and save them
+        self.__manager.auth_encrypt_users()
+
