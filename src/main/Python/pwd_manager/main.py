@@ -48,14 +48,25 @@ def user_window():
     # Boton eliminar contraseña
     Button(window_user, text="Eliminar contraseña", height="2", width="30", bg="#FFFFFF", command=delete_password_window).pack()
     # Boton cerrar sesión
-    Button(window_user, text="Log out", height="2", width="30", bg="#FFFFFF", command=logout).pack()
+    Button(window_user, text="Cerrar sesión", height="2", width="30", bg="#FFFFFF", command=logout).pack()
     data = user_actual.stored_passwords
     if data is not None:
         for pwd in data:
             Label(window_user, text="", bg=background_color).pack()
-            Label(window_user, text=pwd, fg='#ffF', bg="#000000").pack()
-    window_user.pack()
+            # Place two rectangles on the screen, one for the website and one for the password
 
+            # Website
+            Label(window_user, text="Website: " + pwd["web"] + " ", fg='#ffF', bg=background_color).pack()
+            # Password
+            Label(window_user, text="Contraseña: " + pwd["web_note"] + " ", fg='#ffF', bg=background_color).pack()
+
+            # Button to show the password
+            # Button(window_user, text="Mostrar contraseña", height="2", width="30", bg="#FFFFFF", command=lambda: messagebox.showinfo(message=show_password(counter, data))).pack()
+
+            # Note
+            Label(window_user, text="Nota: " + pwd["web_note"], fg='#ffF', bg=background_color).pack()
+
+    window_user.pack()
 
 # VENTANA AÑADIR CONTRASEÑA DEL USUARIO
 def add_password_window():
@@ -130,20 +141,34 @@ def logout():
 
     # Delete the user_actual object and create a new one
     global user_actual
+    user_actual.dump_user_info()
     user_actual = User()
 
     messagebox.showinfo(message="Sesión cerrada correctamente")
+
     # Forget all labels and entries from the login
     window_login.forget()
+
     # Remove all labels and entries from the window_user
     for widget in window_user.winfo_children():
         widget.destroy()
     window_user.forget()
+
     window_register.forget()
+
+    # Remove all labels and entries from the window_add_password
+    for widget in window_add_password.winfo_children():
+        widget.destroy()
     window_add_password.forget()
-    # window_delete_password.forget()
+
+    # Remove all labels and entries from the window_delete_password
+    for widget in window_delete_password.winfo_children():
+        widget.destroy()
+    window_delete_password.forget()
+
     password.set("")
     username.set("")
+
     window_home.pack()
 
 def add_password():
@@ -184,6 +209,10 @@ def delete_password():
     except ValueError as e:
         messagebox.showerror(message=e)
 
+def show_password(counter, data):
+    # Find the password to delete
+    return data[counter]["web_password"]
+
 # ----CARACTERISTICAS VENTANA----
 background_color = "#2D2D2D"
 window_principal = tk.Tk()
@@ -211,10 +240,10 @@ window_home.config(width=300, height=250, bg=background_color)
 window_home.pack()
 Label(window_home, text="", bg=background_color, fg='#ffF').pack()
 # Boton de iniciar sesión
-Button(window_home, text="Log in", height="2", width="30", bg="#FFFFFF", command=login_window).pack()
+Button(window_home, text="Iniciar sesión", height="2", width="30", bg="#FFFFFF", command=login_window).pack()
 Label(window_home, text="", bg=background_color, fg='#ffF').pack()
 # Boton de registrar
-Button(window_home, text="Register", height="2", width="30", bg="#FFFFFF", command=register_window).pack()
+Button(window_home, text="Registrarse", height="2", width="30", bg="#FFFFFF", command=register_window).pack()
 Label(window_home, text="", bg=background_color, fg='#ffF').pack()
 
 # ----VENTANA LOG IN----
@@ -223,40 +252,43 @@ window_login.config(width=300, height=250, bg=background_color)
 Label(window_login, text="", bg=background_color, fg='#ffF').pack()
 Button(window_login, text="Back", height="2", width="30", bg="#FFFFFF", command=back).pack()
 Label(window_login, text="", bg=background_color, fg='#ffF').pack()
-Label(window_login, text="Please enter details below to login", fg='#ffF', bg=background_color).pack()
+Label(window_login, text="Por favor introduzca los detalles debajo para iniciar sesión", fg='#ffF', bg=background_color).pack()
 Label(window_login, text="", bg=background_color).pack()
 # FORMULARIO DATOS LOG IN
 # Usuario
-Label(window_login, bg=background_color, fg='#ffF', text="Username * ").pack()
+Label(window_login, bg=background_color, fg='#ffF', text="Nombre de usuario * ").pack()
 Entry(window_login, textvariable=username).pack()
 # Contraseña
-Label(window_login, bg=background_color, fg='#ffF', text="Password * ").pack()
+Label(window_login, bg=background_color, fg='#ffF', text="Contraseña * ").pack()
 Entry(window_login, textvariable=password, show='*').pack()
 Label(window_login, text="", bg=background_color).pack()
 # Boton de log in
-Button(window_login, text="log in", height="2", width="30", bg="#FFFFFF", command=login_user).pack()
+Button(window_login, text="Iniciar sesión", height="2", width="30", bg="#FFFFFF", command=login_user).pack()
 
 # ----VENTANA REGISTRAR----
 window_register = Frame(window_principal)
 window_register.config(width=300, height=250, bg=background_color)
 Label(window_register, text="", bg=background_color, fg='#ffF').pack()
-Button(window_register, text="Back", height="2", width="30", bg="#FFFFFF", command=back).pack()
+Button(window_register, text="Atrás", height="2", width="30", bg="#FFFFFF", command=back).pack()
 Label(window_register, text="", bg=background_color, fg='#ffF').pack()
-Label(window_register, text="Please enter details below to login", fg='#ffF', bg=background_color).pack()
-Label(window_register, text="Password details:\n1.-At least 8 characters\n2.-At least 1 letter in caps\n3.-At least a "
-                            "number\n4.-At least one special character (?!@$&*-.)", fg='#ffF',
-                            bg=background_color, justify="left").pack()
+Label(window_register, text="Por favor introduzca los detalles debajo para registrarse", fg='#ffF', bg=background_color).pack()
+Label(window_register, text="Detalles de la contraseña:"
+                            "\n1.-Al menos 8 caracteres"
+                            "\n2.-Al menos 1 mayúscula"
+                            "\n3.-Al menos un número"
+                            "\n4.-Al menos un carácter especial (?!@$&*-.)",
+                            fg='#ffF', bg=background_color, justify="left").pack()
 Label(window_register, text="", bg=background_color).pack()
 # FORMULARIO REGISTRO DE DATOS
 # Usuario
-Label(window_register, bg=background_color, fg='#ffF', text="Username * ").pack()
+Label(window_register, bg=background_color, fg='#ffF', text="Nombre de usuario * ").pack()
 Entry(window_register, textvariable=username).pack()
 # Contraseña
-Label(window_register, bg=background_color, fg='#ffF', text="Password * ").pack()
+Label(window_register, bg=background_color, fg='#ffF', text="Contraseña * ").pack()
 Entry(window_register, textvariable=password, show='*').pack()
 Label(window_register, text="", bg=background_color).pack()
 # Boton de registrar
-Button(window_register, text="sign up", height="2", width="30", bg="#FFFFFF", command=register_user).pack()
+Button(window_register, text="Registrarse", height="2", width="30", bg="#FFFFFF", command=register_user).pack()
 
 # ----VENTANA USUARIO----
 window_user = Frame(window_principal)
@@ -271,5 +303,3 @@ window_delete_password = Frame(window_principal)
 window_delete_password.config(width=300, height=250, bg=background_color)
 
 window_principal.mainloop()
-
-# TODO: Corregir consistencia de idioma en la interfaz

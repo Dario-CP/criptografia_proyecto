@@ -107,5 +107,8 @@ class Manager:
         # Create the Fernet object with the key
         f = Fernet(base64.urlsafe_b64encode(key))
         # Decrypt the data
-        decrypted_data = f.decrypt(eval(data))
+        try:
+            decrypted_data = f.decrypt(eval(data))
+        except Exception as ex:
+            raise ValueError("El archivo de usuarios sufrió modificaciones de forma externa") from ex
         return eval(decrypted_data)

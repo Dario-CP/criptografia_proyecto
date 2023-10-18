@@ -11,6 +11,7 @@ from pwd_manager.storage.pwd_user_json_store import PwdStore
 from pwd_manager.manager.manager import Manager
 from pwd_manager.attributes.attribute_password import Password
 
+
 class User:
     """
     Class for providing the methods for registering a new user
@@ -46,7 +47,6 @@ class User:
         else:
             raise ValueError("Nombre de usuario o contraseña incorrectas")
 
-
     def register_user(self, username, password):
         """Register the user into the users file"""
         # Check if the username is empty
@@ -64,8 +64,6 @@ class User:
         self.__user_id = uuid.uuid4()
 
         return self.__username
-
-
 
     def save_user(self):
         """Save the user into the user's JSON file"""
@@ -87,7 +85,6 @@ class User:
         # to rotate the salt and the key
         else:
             self.__manager.update_user(user_dict)
-
 
     def derive_password(self, salt=None):
         if salt is None:
@@ -138,7 +135,10 @@ class User:
         # Create the Fernet object with the key
         f = Fernet(base64.urlsafe_b64encode(key))
         # Decrypt the data
-        decrypted_data = f.decrypt(data)
+        try:
+            decrypted_data = f.decrypt(data)
+        except Exception as ex:
+            raise ValueError("El archivo de contraseñas del usuario sufrió modificaciones de forma externa") from ex
         # Return the decrypted data
         return decrypted_data
 
@@ -172,7 +172,6 @@ class User:
                 self.__stored_passwords.remove(pwd)
                 return True
         raise ValueError("Sitio de contraseña no encontrado")
-
 
     @property
     def username(self):
@@ -210,7 +209,10 @@ class User:
     def stored_passwords(self, value):
         self.__stored_passwords = value
 
-    def __del__(self):
+    def dump_user_info(self):
+        """
+        Function to be run ALWAYS before the user object is deleted from memory
+        """
         # Before deleting the user, save the user and their passwords
         # We encrypt the passwords with Fernet using the user's password as key
         encrypted_passwords, self.__encryption_salt = self.auth_encrypt(self.__stored_passwords)
@@ -219,4 +221,3 @@ class User:
         self.save_user()
         # We encrypt the users file with Fernet using the master password as key and save them
         self.__manager.auth_encrypt_users()
-
