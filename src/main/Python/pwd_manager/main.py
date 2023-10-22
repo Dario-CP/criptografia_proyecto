@@ -56,9 +56,9 @@ def user_window():
             # Place two rectangles on the screen, one for the website and one for the password
 
             # Website
-            Label(window_user, text="Website: " + pwd["web"] + " ", fg='#ffF', bg=background_color).pack()
+            Label(window_user, text="Sitio: " + pwd["web"] + " ", fg='#ffF', bg=background_color).pack()
             # Password
-            Label(window_user, text="Contraseña: " + pwd["web_note"] + " ", fg='#ffF', bg=background_color).pack()
+            Label(window_user, text="Contraseña: " + pwd["web_password"] + " ", fg='#ffF', bg=background_color).pack()
 
             # Button to show the password
             # Button(window_user, text="Mostrar contraseña", height="2", width="30", bg="#FFFFFF", command=lambda: messagebox.showinfo(message=show_password(counter, data))).pack()
@@ -77,13 +77,13 @@ def add_password_window():
     window_delete_password.forget()
     # FORMULARIO DATOS AÑADIR UNA NUEVA CONTRASEÑA
     # Web
-    Label(window_add_password, bg=background_color, fg='#ffF', text="Website * ").pack()
+    Label(window_add_password, bg=background_color, fg='#ffF', text="Sitio * ").pack()
     Entry(window_add_password, textvariable=web).pack()
     # Contraseña de la web
-    Label(window_add_password, bg=background_color, fg='#ffF', text="Password * ").pack()
+    Label(window_add_password, bg=background_color, fg='#ffF', text="Contraseña * ").pack()
     Entry(window_add_password, textvariable=web_password).pack()
     # Descripción/Nota sobre la web o contraseña
-    Label(window_add_password, bg=background_color, fg='#ffF', text="Note").pack()
+    Label(window_add_password, bg=background_color, fg='#ffF', text="Nota").pack()
     Entry(window_add_password, textvariable=web_note).pack()
     # Add padding between input fields and button
     Label(window_add_password, text="", bg=background_color).pack()
