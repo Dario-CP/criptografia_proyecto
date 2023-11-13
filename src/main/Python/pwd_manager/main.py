@@ -47,6 +47,8 @@ def user_window():
     Button(window_user, text="Añadir contraseña", height="2", width="30", bg="#FFFFFF",command=add_password_window).pack()
     # Boton eliminar contraseña
     Button(window_user, text="Eliminar contraseña", height="2", width="30", bg="#FFFFFF", command=delete_password_window).pack()
+    # Boton descargar recibo
+    ###########################################
     # Boton cerrar sesión
     Button(window_user, text="Cerrar sesión", height="2", width="30", bg="#FFFFFF", command=logout).pack()
     data = user_actual.stored_passwords

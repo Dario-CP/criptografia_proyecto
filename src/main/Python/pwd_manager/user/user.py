@@ -159,7 +159,7 @@ class User:
         pwd_dict = {
             "web": web,
             "web_password": web_password,
-            "web_note": web_note,
+            "web_note": web_note
         }
         # Append the password dictionary to the user's passwords list
         self.__stored_passwords.append(pwd_dict)
@@ -172,6 +172,23 @@ class User:
                 self.__stored_passwords.remove(pwd)
                 return True
         raise ValueError("Sitio de contraseña no encontrado")
+
+    def download_receipt(self):
+        """
+        Creates a document with a listing of the user's sites
+        :return:
+        """
+        filename = "recibo_" + str(self.__user_id) + ".txt"
+        # Create the document
+        with open(filename, "w", encoding="utf-8", newline="") as file:
+            file.write("Recibo de contraseñas\n")
+            file.write("Usuario: " + self.__username + "\n")
+            file.write("Sitios:\n")
+            for pwd in self.__stored_passwords:
+                file.write("Sitio: " + pwd["web"] + "\n")
+                file.write("Nota: " + pwd["web_note"] + "\n")
+                file.write("\n")
+        return True
 
     @property
     def username(self):
