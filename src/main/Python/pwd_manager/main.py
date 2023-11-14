@@ -215,7 +215,7 @@ def download_receipt():
     """Descargar recibo"""
     try:
         user_actual.download_receipt()
-        messagebox.showinfo(message="Recibo descargado correctamente")
+        messagebox.showinfo(message="Recibo descargado y firmado correctamente. La firma ha sido verificada.")
     except ValueError as e:
         messagebox.showerror(message=e)
 

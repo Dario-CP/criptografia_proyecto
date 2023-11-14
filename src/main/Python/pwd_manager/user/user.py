@@ -7,6 +7,10 @@ import os
 import base64
 import datetime
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.fernet import Fernet
 from pwd_manager.storage.pwd_user_json_store import PwdStore
 from pwd_manager.manager.manager import Manager
@@ -26,6 +30,7 @@ class User:
         self.__encryption_salt = ""
         self.__stored_passwords = []
         self.__manager = Manager()
+        self.__private_key = None
 
     def login_user(self, username, password):
         """Login the user"""
@@ -39,6 +44,10 @@ class User:
         login = self.check_password(eval(user["salt"]), eval(user["password"]))
         if login:
             self.__user_id = user["user_id"]
+            self.__private_key = serialization.load_pem_private_key(
+                eval(user["private_key"]),
+                password=None,
+            )
             # Read the passwords from the user after login
             # We decrypt the passwords with Fernet using the user's password as key
             encrypted_passwords = PwdStore().lists(self.user_id)
@@ -64,6 +73,9 @@ class User:
         self.__username = username
         self.__password = password
         self.__user_id = uuid.uuid4()
+        self.__private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=2048)
 
         return self.__username
 
@@ -73,12 +85,17 @@ class User:
         user = self.__manager.get_user_info(self.__username)
         # We always generate a new salt and key (derived password)
         salt_password = self.derive_password()
+        serial_private_key = self.__private_key.private_bytes(encoding=serialization.Encoding.PEM,
+                                                              format=serialization.PrivateFormat.TraditionalOpenSSL,
+                                                              encryption_algorithm=serialization.NoEncryption())
+        serial_private_key.splitlines()[0]
         user_dict = {
             "username": self.__username,
             "password": str(salt_password[1]),
             "salt": str(salt_password[0]),
             "encryption_salt": str(self.__encryption_salt),
-            "user_id": str(self.__user_id)
+            "user_id": str(self.__user_id),
+            "private_key": str(serial_private_key)
         }
         # If the user is not registered, add the user to the users file
         if user is None:
@@ -182,9 +199,10 @@ class User:
         """
         now = datetime.datetime.now()
         filename = (JSON_FILES_PATH + "receipts/" + "recibo_" + str(self.__user_id) + "-" +
-                    now.strftime("%d-%m-%Y-%H-%M-%S") + ".txt")
+                    now.strftime("%d-%m-%Y-%H-%M-%S"))
+
         # Create the document
-        with open(filename, "w", encoding="utf-8", newline="") as file:
+        with open(filename + ".txt", "w", encoding="utf-8", newline="") as file:
             file.write("##############################################################\n")
             file.write("\t\t\t\t\tRECIBO DE CONTRASEÑAS\n")
             file.write("##############################################################\n")
@@ -197,6 +215,48 @@ class User:
             file.write("##############################################################\n")
             file.write("\t\t\t\t\tFecha: " + now.strftime("%d/%m/%Y %H:%M:%S") + "\n")
             file.write("##############################################################\n")
+        # Read the file's bytes
+        with open(filename + ".txt", "rb") as file:
+            data = file.read()
+        # Sign the file
+        signature = self.sign_file(data)
+        # Save the signature
+        with open(filename + ".sig", "wb") as file:
+            file.write(signature)
+
+        # Verify the signature
+        try:
+            self.verify_file(data, signature)
+        except Exception as ex:
+            raise ex
+        return True
+
+    def sign_file(self, data):
+        # Sign the file
+        signature = self.__private_key.sign(
+            data,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        return signature
+
+    def verify_file(self, data, signature):
+        # Verify the signature
+        try:
+            self.__private_key.public_key().verify(
+                signature,
+                data,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH
+                ),
+                hashes.SHA256()
+            )
+        except Exception as ex:
+            raise ValueError("La firma del documento no ha podido ser verificada.") from ex
         return True
 
     @property
