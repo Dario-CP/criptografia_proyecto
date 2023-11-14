@@ -5,11 +5,13 @@ User module for the password manager.
 import uuid
 import os
 import base64
+import datetime
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.fernet import Fernet
 from pwd_manager.storage.pwd_user_json_store import PwdStore
 from pwd_manager.manager.manager import Manager
 from pwd_manager.attributes.attribute_password import Password
+from pwd_manager.cfg.pwd_manager_config import JSON_FILES_PATH
 
 
 class User:
@@ -178,16 +180,23 @@ class User:
         Creates a document with a listing of the user's sites
         :return:
         """
-        filename = "recibo_" + str(self.__user_id) + ".txt"
+        now = datetime.datetime.now()
+        filename = (JSON_FILES_PATH + "receipts/" + "recibo_" + str(self.__user_id) + "-" +
+                    now.strftime("%d-%m-%Y-%H-%M-%S") + ".txt")
         # Create the document
         with open(filename, "w", encoding="utf-8", newline="") as file:
-            file.write("Recibo de contraseñas\n")
-            file.write("Usuario: " + self.__username + "\n")
-            file.write("Sitios:\n")
+            file.write("##############################################################\n")
+            file.write("\t\t\t\t\tRECIBO DE CONTRASEÑAS\n")
+            file.write("##############################################################\n")
+            file.write("Usuario: " + self.__username + "\n\n")
+            file.write("Sitios:\n\n")
             for pwd in self.__stored_passwords:
-                file.write("Sitio: " + pwd["web"] + "\n")
-                file.write("Nota: " + pwd["web_note"] + "\n")
+                file.write("\tSitio: " + pwd["web"] + "\n")
+                file.write("\tNota: " + pwd["web_note"] + "\n")
                 file.write("\n")
+            file.write("##############################################################\n")
+            file.write("\t\t\t\t\tFecha: " + now.strftime("%d/%m/%Y %H:%M:%S") + "\n")
+            file.write("##############################################################\n")
         return True
 
     @property

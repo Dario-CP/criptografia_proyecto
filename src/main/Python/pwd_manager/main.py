@@ -48,7 +48,7 @@ def user_window():
     # Boton eliminar contraseña
     Button(window_user, text="Eliminar contraseña", height="2", width="30", bg="#FFFFFF", command=delete_password_window).pack()
     # Boton descargar recibo
-    ###########################################
+    Button(window_user, text="Descargar recibo", height="2", width="30", bg="#FFFFFF", command=download_receipt).pack()
     # Boton cerrar sesión
     Button(window_user, text="Cerrar sesión", height="2", width="30", bg="#FFFFFF", command=logout).pack()
     data = user_actual.stored_passwords
@@ -208,6 +208,14 @@ def delete_password():
             widget.destroy()
         window_delete_password.forget()
         user_window()
+    except ValueError as e:
+        messagebox.showerror(message=e)
+
+def download_receipt():
+    """Descargar recibo"""
+    try:
+        user_actual.download_receipt()
+        messagebox.showinfo(message="Recibo descargado correctamente")
     except ValueError as e:
         messagebox.showerror(message=e)
 
