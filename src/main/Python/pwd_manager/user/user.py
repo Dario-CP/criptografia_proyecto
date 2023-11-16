@@ -30,6 +30,7 @@ class User:
         self.__encryption_salt = ""
         self.__stored_passwords = []
         self.__manager = Manager()
+        self.__pk_password = ""
         self.__private_key = None
 
     def login_user(self, username, password):
@@ -40,13 +41,14 @@ class User:
 
         self.__username = username
         self.__password = password
+        self.__pk_password = user["pk_password"]
 
         login = self.check_password(eval(user["salt"]), eval(user["password"]))
         if login:
             self.__user_id = user["user_id"]
             self.__private_key = serialization.load_pem_private_key(
                 eval(user["private_key"]),
-                password=None,
+                password=self.__pk_password.encode()
             )
             # Read the passwords from the user after login
             # We decrypt the passwords with Fernet using the user's password as key
@@ -58,13 +60,17 @@ class User:
         else:
             raise ValueError("Nombre de usuario o contraseña incorrectas")
 
-    def register_user(self, username, password):
+    def register_user(self, username, password, pk_password):
         """Register the user into the users file"""
         # Check if the username is empty
         if username == "":
             raise ValueError("El nombre de usuario no puede estar vacío")
+        #Check if the password of the password manager and the password for private key are the same
+        if password == pk_password:
+            raise ValueError("Las contraseñas no pueden ser iguales por motivos de seguridad")
         # Check if the password meets the requirements
         Password(password).value
+        Password(pk_password).value
         # Remember that we store the information on user's logout
         user = self.__manager.get_user_info(username)
         if user is not None:
@@ -73,6 +79,7 @@ class User:
         self.__username = username
         self.__password = password
         self.__user_id = uuid.uuid4()
+        self.__pk_password = pk_password
         self.__private_key = rsa.generate_private_key(
             public_exponent=65537,
             key_size=2048)
@@ -87,7 +94,7 @@ class User:
         salt_password = self.derive_password()
         serial_private_key = self.__private_key.private_bytes(encoding=serialization.Encoding.PEM,
                                                               format=serialization.PrivateFormat.TraditionalOpenSSL,
-                                                              encryption_algorithm=serialization.NoEncryption())
+                                                              encryption_algorithm=serialization.BestAvailableEncryption(self.__pk_password.encode()))
         serial_private_key.splitlines()[0]
         user_dict = {
             "username": self.__username,
@@ -95,6 +102,7 @@ class User:
             "salt": str(salt_password[0]),
             "encryption_salt": str(self.__encryption_salt),
             "user_id": str(self.__user_id),
+            "pk_password": self.__pk_password,
             "private_key": str(serial_private_key)
         }
         # If the user is not registered, add the user to the users file

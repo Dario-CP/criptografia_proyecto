@@ -42,6 +42,7 @@ def user_window():
     """User window"""
     # ----VENTANA DE USUARIO----
     Label(window_user, text="Usuario: " + user_actual.username, fg='#ffF', bg=background_color).pack()
+    Label(window_user, text="Para que se guarde la información correctamente cierre sesión", fg='#ffF', bg=background_color).pack()
     Label(window_user, text="", bg=background_color).pack()
     # Boton añadir contraseña
     Button(window_user, text="Añadir contraseña", height="2", width="30", bg="#FFFFFF",command=add_password_window).pack()
@@ -112,6 +113,29 @@ def back():
     window_login.forget()
     window_home.pack()
 
+# FUNCION PARA ABRIR LA VENTANA EMERGENTE
+def open_popup():
+    global pop_up
+    pop_up = Toplevel(window_principal)
+    pop_up.config(width=300, height=250, bg=background_color)
+    Label(pop_up, text="Por motivos de seguridad esta contraseña tiene que ser diferente a la contraseña anterior",
+          bg=background_color, fg='#ffF',font="bold").pack()
+    Label(pop_up, text="", bg=background_color, fg='#ffF').pack()
+    Label(pop_up, text="Detalles de la contraseña:"
+                                "\n1.-Al menos 8 caracteres"
+                                "\n2.-Al menos 1 mayúscula"
+                                "\n3.-Al menos un número"
+                                "\n4.-Al menos un carácter especial (?!@$&*-.)",
+          fg='#ffF', bg=background_color, justify="left").pack()
+    Label(pop_up, text="", bg=background_color, fg='#ffF').pack()
+    Entry(pop_up, textvariable=pk_password, show='*').pack()
+    Label(pop_up, text="", bg=background_color, fg='#ffF').pack()
+    Button(pop_up, text="Usar contraseña", height="2", width="30", bg="#FFFFFF", command=register_user).pack()
+    Label(pop_up, text="", bg=background_color, fg='#ffF').pack()
+
+# FUNCION PARA BORRAR LA VENTANA EMERGENTE
+def close_popup():
+    pop_up.destroy()
 
 # FUNCIÓN INICIAR SESIÓN
 def login_user():
@@ -128,13 +152,17 @@ def login_user():
 # FUNCION REGISTRAR USUARIO
 def register_user():
     """Registrar usuario"""
+    close_popup()
     try:
-        user_actual.register_user(username.get(), password.get())
+        user_actual.register_user(username.get(), password.get(), pk_password.get())
         messagebox.showinfo(title='Registrado', message="Registrado correctamente")
         window_register.forget()
         user_window()
     except ValueError as e:
         messagebox.showerror(title='Error', message=e)
+        pk_password.set("")
+        password.set("")
+        username.set("")
 
 
 # FUNCION CERRAR SESIÓN USUARIO
@@ -237,12 +265,14 @@ global web
 global web_password
 global web_note
 global user_actual
+global pk_password
 username = StringVar()
 password = StringVar()
 web = StringVar()
 web_password = StringVar()
 web_note = StringVar()
 user_actual = User()
+pk_password = StringVar()
 
 # ----VENTANA HOME----
 window_home = Frame(window_principal)
@@ -298,7 +328,7 @@ Label(window_register, bg=background_color, fg='#ffF', text="Contraseña * ").pa
 Entry(window_register, textvariable=password, show='*').pack()
 Label(window_register, text="", bg=background_color).pack()
 # Boton de registrar
-Button(window_register, text="Registrarse", height="2", width="30", bg="#FFFFFF", command=register_user).pack()
+Button(window_register, text="Registrarse", height="2", width="30", bg="#FFFFFF", command=open_popup).pack()
 
 # ----VENTANA USUARIO----
 window_user = Frame(window_principal)
@@ -311,5 +341,6 @@ window_add_password.config(width=300, height=250, bg=background_color)
 # ----VENTANA ELIMINAR CONTRASEÑA----
 window_delete_password = Frame(window_principal)
 window_delete_password.config(width=300, height=250, bg=background_color)
+# test
 
 window_principal.mainloop()
