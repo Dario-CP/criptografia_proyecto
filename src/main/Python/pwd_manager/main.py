@@ -230,9 +230,9 @@ def download_receipt():
 def verify_receipt():
     """Elegir archivo"""
     receipt_filename = askopenfilename(filetypes=[("Archivos de TEXTO", "*.txt")],
-                                       title="Elige el archivo del recibo.")
+                                       title="Elige el archivo del recibo")
     signature_filename = askopenfilename(filetypes=[("Archivos de FIRMA", "*.sig")],
-                                         title="Elige el archivo de la firma.")
+                                         title="Elige el archivo de la firma")
     try:
         user_actual.verify_receipt(receipt_filename, signature_filename)
         messagebox.showinfo(message="Recibo verificado correctamente")
