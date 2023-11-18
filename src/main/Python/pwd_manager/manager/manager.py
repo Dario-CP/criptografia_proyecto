@@ -104,6 +104,7 @@ class Manager:
             salt = json.load(file)
         # Obtain the key from the user's password and the encryption salt
         key = self.derive_password(eval(salt))[1]
+        print(key)
         # Create the Fernet object with the key
         f = Fernet(base64.urlsafe_b64encode(key))
         # Decrypt the data

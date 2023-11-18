@@ -43,7 +43,7 @@ class User:
         self.__password = password
         self.__pk_password = user["pk_password"]
 
-        login = self.check_password(eval(user["salt"]), eval(user["password"]))
+        login = self.check_password(self.__password,eval(user["salt"]), eval(user["password"]))
         if login:
             self.__user_id = user["user_id"]
             self.__private_key = serialization.load_pem_private_key(
@@ -91,7 +91,8 @@ class User:
         # Check if the user is already registered
         user = self.__manager.get_user_info(self.__username)
         # We always generate a new salt and key (derived password)
-        salt_password = self.derive_password()
+        salt_password = self.derive_password(self.__password)
+        #salt_pk_password = self.derive_password(self.__pk_password)
         serial_private_key = self.__private_key.private_bytes(encoding=serialization.Encoding.PEM,
                                                               format=serialization.PrivateFormat.TraditionalOpenSSL,
                                                               encryption_algorithm=serialization.BestAvailableEncryption(self.__pk_password.encode()))
@@ -103,6 +104,8 @@ class User:
             "encryption_salt": str(self.__encryption_salt),
             "user_id": str(self.__user_id),
             "pk_password": self.__pk_password,
+            #"pk_password": str(salt_pk_password[1])
+            #"salt_pk_password": str(salt_pk_password[0])
             "private_key": str(serial_private_key)
         }
         # If the user is not registered, add the user to the users file
@@ -113,7 +116,7 @@ class User:
         else:
             self.__manager.update_user(user_dict)
 
-    def derive_password(self, salt=None):
+    def derive_password(self, pwd, salt=None):
         if salt is None:
             # generate salt
             salt = os.urandom(16)
@@ -125,10 +128,10 @@ class User:
             r=8,
             p=1,
         )
-        key = kdf.derive(self.__password.encode())  # .encode to convert str to bytes
+        key = kdf.derive(pwd.encode())  # .encode to convert str to bytes
         return salt, key
 
-    def check_password(self, salt, key):
+    def check_password(self,pwd,salt, key):
         # verify
         kdf = Scrypt(
             salt=salt,
@@ -138,7 +141,7 @@ class User:
             p=1,
         )
         try:
-            kdf.verify(self.__password.encode(), key)
+            kdf.verify(pwd.encode(), key)
             return True
         except:
             return False
@@ -147,7 +150,7 @@ class User:
         # Call the derive_password method to get the salt and the key
         # Each time we encrypt, we use a new salt, so the encryption key is different each time
         # The encryption key is derived from the user's password (the one introduced when the user logged in)
-        salt, key = self.derive_password()
+        salt, key = self.derive_password(self.__password)
         # Create the Fernet object with the key
         f = Fernet(base64.urlsafe_b64encode(key))
         # Encrypt the data
@@ -158,7 +161,7 @@ class User:
 
     def auth_decrypt(self, data, salt):
         # Obtain the key from the user's password and the encryption salt
-        key = self.derive_password(salt)[1]
+        key = self.derive_password(self.__password,salt)[1]
         # Create the Fernet object with the key
         f = Fernet(base64.urlsafe_b64encode(key))
         # Decrypt the data
