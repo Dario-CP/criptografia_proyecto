@@ -15,7 +15,7 @@ from cryptography.fernet import Fernet
 from pwd_manager.storage.pwd_user_json_store import PwdStore
 from pwd_manager.manager.manager import Manager
 from pwd_manager.attributes.attribute_password import Password
-from pwd_manager.cfg.pwd_manager_config import JSON_FILES_PATH
+from pwd_manager.cfg.pwd_manager_config import DOWNLOADS_PATH
 
 
 class User:
@@ -30,10 +30,10 @@ class User:
         self.__encryption_salt = ""
         self.__stored_passwords = []
         self.__manager = Manager()
-        self.__pk_password = ""
-        self.__private_key = None
+        self.__pk_password = ""     # Derived private key
+        self.__private_key = None   # Private key (introduced by the user each time they log in)
 
-    def login_user(self, username, password):
+    def login_user(self, username, password, pk_password):
         """Login the user"""
         user = self.__manager.get_user_info(username)
         if user is None:
@@ -41,10 +41,11 @@ class User:
 
         self.__username = username
         self.__password = password
-        self.__pk_password = user["pk_password"]
+        self.__pk_password = pk_password
 
-        login = self.check_password(self.__password,eval(user["salt"]), eval(user["password"]))
-        if login:
+        login = self.check_password(self.__password, eval(user["salt"]), eval(user["password"]))
+        login_pk = self.check_password(self.__pk_password, eval(user["pk_salt"]), eval(user["pk_password"]))
+        if login and login_pk:
             self.__user_id = user["user_id"]
             self.__private_key = serialization.load_pem_private_key(
                 eval(user["private_key"]),
@@ -57,15 +58,19 @@ class User:
                 self.__stored_passwords = eval(self.auth_decrypt(eval(encrypted_passwords),
                                                                  eval(user["encryption_salt"])))
             return self.__username
-        else:
+        elif not login:
             raise ValueError("Nombre de usuario o contraseña incorrectas")
+        elif not login_pk:
+            raise ValueError("Contraseña de clave privada incorrecta")
+        else:
+            raise ValueError("Error inesperado")
 
     def register_user(self, username, password, pk_password):
         """Register the user into the users file"""
         # Check if the username is empty
         if username == "":
             raise ValueError("El nombre de usuario no puede estar vacío")
-        #Check if the password of the password manager and the password for private key are the same
+        # Check if the password of the password manager and the password for private key are the same
         if password == pk_password:
             raise ValueError("Las contraseñas no pueden ser iguales por motivos de seguridad")
         # Check if the password meets the requirements
@@ -92,7 +97,7 @@ class User:
         user = self.__manager.get_user_info(self.__username)
         # We always generate a new salt and key (derived password)
         salt_password = self.derive_password(self.__password)
-        #salt_pk_password = self.derive_password(self.__pk_password)
+        pk_salt_password = self.derive_password(self.__pk_password)
         serial_private_key = self.__private_key.private_bytes(encoding=serialization.Encoding.PEM,
                                                               format=serialization.PrivateFormat.TraditionalOpenSSL,
                                                               encryption_algorithm=serialization.BestAvailableEncryption(self.__pk_password.encode()))
@@ -103,10 +108,9 @@ class User:
             "salt": str(salt_password[0]),
             "encryption_salt": str(self.__encryption_salt),
             "user_id": str(self.__user_id),
-            "pk_password": self.__pk_password,
-            #"pk_password": str(salt_pk_password[1])
-            #"salt_pk_password": str(salt_pk_password[0])
-            "private_key": str(serial_private_key)
+            "pk_password": str(pk_salt_password[1]),
+            "pk_salt": str(pk_salt_password[0]),        # Private key salt
+            "private_key": str(serial_private_key)      # Derived private key
         }
         # If the user is not registered, add the user to the users file
         if user is None:
@@ -209,30 +213,32 @@ class User:
         :return:
         """
         now = datetime.datetime.now()
-        filename = (JSON_FILES_PATH + "receipts/" + "recibo_" + str(self.__user_id) + "-" +
-                    now.strftime("%d-%m-%Y-%H-%M-%S"))
+        receipt_filename = (DOWNLOADS_PATH + "recibo_" + str(self.__username) + "_" +
+                            now.strftime("%d-%m-%Y_%H-%M-%S"))
+        signature_filename = (DOWNLOADS_PATH + "firma_" + str(self.__username) + "_" +
+                              now.strftime("%d-%m-%Y_%H-%M-%S"))
 
         # Create the document
-        with open(filename + ".txt", "w", encoding="utf-8", newline="") as file:
-            file.write("##############################################################\n")
-            file.write("\t\t\t\t\tRECIBO DE CONTRASEÑAS\n")
-            file.write("##############################################################\n")
+        with open(receipt_filename + ".txt", "w", encoding="utf-8", newline="") as file:
+            file.write("#########################################################\n")
+            file.write("\t\tRECIBO DE CONTRASEÑAS\n")
+            file.write("#########################################################\n")
             file.write("Usuario: " + self.__username + "\n\n")
             file.write("Sitios:\n\n")
             for pwd in self.__stored_passwords:
                 file.write("\tSitio: " + pwd["web"] + "\n")
                 file.write("\tNota: " + pwd["web_note"] + "\n")
                 file.write("\n")
-            file.write("##############################################################\n")
-            file.write("\t\t\t\t\tFecha: " + now.strftime("%d/%m/%Y %H:%M:%S") + "\n")
-            file.write("##############################################################\n")
+            file.write("#########################################################\n")
+            file.write("\t\tFecha: " + now.strftime("%d/%m/%Y %H:%M:%S") + "\n")
+            file.write("#########################################################\n")
         # Read the file's bytes
-        with open(filename + ".txt", "rb") as file:
+        with open(receipt_filename + ".txt", "rb") as file:
             data = file.read()
         # Sign the file
         signature = self.sign_file(data)
         # Save the signature
-        with open(filename + ".sig", "wb") as file:
+        with open(signature_filename + ".sig", "wb") as file:
             file.write(signature)
 
         # Verify the signature
@@ -254,6 +260,20 @@ class User:
         )
         return signature
 
+    def verify_receipt(self, receipt_filename, signature_filename):
+        # Read the file's bytes
+        with open(receipt_filename, "rb") as file:
+            data = file.read()
+        # Read the signature
+        with open(signature_filename, "rb") as file:
+            signature = file.read()
+        # Verify the signature
+        try:
+            self.verify_file(data, signature)
+        except Exception as ex:
+            raise ex
+        return True
+
     def verify_file(self, data, signature):
         # Verify the signature
         try:
@@ -267,7 +287,7 @@ class User:
                 hashes.SHA256()
             )
         except Exception as ex:
-            raise ValueError("La firma del documento no ha podido ser verificada.") from ex
+            raise ValueError("La firma del documento no ha podido ser verificada") from ex
         return True
 
     @property
