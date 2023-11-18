@@ -55,22 +55,32 @@ def user_window():
     Button(window_user, text="Verificar recibo", height="2", width="30", bg="#FFFFFF", command=verify_receipt).pack()
     # Boton cerrar sesión
     Button(window_user, text="Cerrar sesión", height="2", width="30", bg="#FFFFFF", command=logout).pack()
+    scrollbar = Scrollbar(window_user)
+    scrollbar.pack(side=RIGHT, fill=Y)
     data = user_actual.stored_passwords
     if data is not None:
+        mylist = Listbox(window_user, yscrollcommand=scrollbar.set)
         for pwd in data:
-            Label(window_user, text="", bg=background_color).pack()
+            # Label(window_user, text="", bg=background_color).pack()
             # Place two rectangles on the screen, one for the website and one for the password
+            mylist.insert(END, "Sitio: " + pwd["web"])
+            mylist.insert(END, "Contraseña: " + pwd["web_password"])
+            mylist.insert(END, "Nota: " + pwd["web_note"])
+            mylist.insert(END, "")
 
             # Website
-            Label(window_user, text="Sitio: " + pwd["web"] + " ", fg='#ffF', bg=background_color).pack()
+            #Label(window_user, text="Sitio: " + pwd["web"] + " ", fg='#ffF', bg=background_color).pack()
             # Password
-            Label(window_user, text="Contraseña: " + pwd["web_password"] + " ", fg='#ffF', bg=background_color).pack()
+            # Label(window_user, text="Contraseña: " + pwd["web_password"] + " ", fg='#ffF', bg=background_color).pack()
 
             # Button to show the password
             # Button(window_user, text="Mostrar contraseña", height="2", width="30", bg="#FFFFFF", command=lambda: messagebox.showinfo(message=show_password(counter, data))).pack()
 
             # Note
-            Label(window_user, text="Nota: " + pwd["web_note"], fg='#ffF', bg=background_color).pack()
+            # Label(window_user, text="Nota: " + pwd["web_note"], fg='#ffF', bg=background_color).pack()
+        mylist.config(width=100, height=20, bg=background_color, fg='#ffF', borderwidth=0, highlightthickness=0)
+        mylist.pack(side=LEFT, fill=BOTH)
+        scrollbar.config(command=mylist.yview)
 
     window_user.pack()
 
@@ -177,6 +187,7 @@ def logout():
 
     password.set("")
     username.set("")
+    pk_password.set("")
 
     window_home.pack()
 
