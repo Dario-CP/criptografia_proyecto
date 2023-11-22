@@ -50,7 +50,7 @@ def user_window():
     # Boton eliminar contraseña
     Button(window_user, text="Eliminar contraseña", height="2", width="30", bg="#FFFFFF", command=delete_password_window).pack()
     # Boton descargar recibo
-    Button(window_user, text="Descargar recibo", height="2", width="30", bg="#FFFFFF", command=download_receipt).pack()
+    Button(window_user, text="Descargar recibo", height="2", width="30", bg="#FFFFFF", command=open_popup).pack()
     # Boton verificar recibo
     Button(window_user, text="Verificar recibo", height="2", width="30", bg="#FFFFFF", command=verify_receipt).pack()
     # Boton cerrar sesión
@@ -120,6 +120,31 @@ def delete_password_window():
     Button(window_delete_password, text="Eliminar", height="2", width="30", bg="#FFFFFF", command=delete_password).pack()
     window_delete_password.pack()
 
+# FUNCION PARA ABRIR LA VENTANA EMERGENTE
+def open_popup():
+    global pop_up
+    pop_up = Toplevel(window_principal)
+    pop_up.config(width=300, height=250, bg=background_color)
+    Label(pop_up, text="Por motivos de seguridad esta contraseña tiene que ser diferente a la contraseña anterior",
+          bg=background_color, fg='#ffF',font="bold").pack()
+    Label(pop_up, text="", bg=background_color, fg='#ffF').pack()
+    Label(pop_up, text="Detalles de la contraseña:"
+                                "\n1.-Al menos 8 caracteres"
+                                "\n2.-Al menos 1 mayúscula"
+                                "\n3.-Al menos un número"
+                                "\n4.-Al menos un carácter especial (?!@$&*-.)",
+          fg='#ffF', bg=background_color, justify="left").pack()
+    Label(pop_up, text="", bg=background_color, fg='#ffF').pack()
+    Entry(pop_up, textvariable=pk_password, show='*').pack()
+    Label(pop_up, text="", bg=background_color, fg='#ffF').pack()
+    Button(pop_up, text="Usar contraseña", height="2", width="30", bg="#FFFFFF", command=download_receipt).pack()
+    Label(pop_up, text="", bg=background_color, fg='#ffF').pack()
+
+# FUNCION PARA BORRAR LA VENTANA EMERGENTE
+def close_popup():
+    pop_up.destroy()
+
+
 # FUNCION IR PARA ATRAS
 def back():
     window_register.forget()
@@ -130,12 +155,11 @@ def back():
 def login_user():
     """Iniciar sesion"""
     try:
-        user_actual.login_user(username.get(), password.get(), pk_password.get())
+        user_actual.login_user(username.get(), password.get())
         messagebox.showinfo(message="Sesión iniciada correctamente")
         window_login.forget()
         user_window()
     except ValueError as e:
-        pk_password.set("")
         password.set("")
         username.set("")
         messagebox.showerror(message=e)
@@ -144,12 +168,11 @@ def login_user():
 def register_user():
     """Registrar usuario"""
     try:
-        user_actual.register_user(username.get(), password.get(), pk_password.get())
+        user_actual.register_user(username.get(), password.get())
         messagebox.showinfo(title='Registrado', message="Registrado correctamente")
         window_register.forget()
         user_window()
     except ValueError as e:
-        pk_password.set("")
         password.set("")
         username.set("")
         messagebox.showerror(title='Error', message=e)
@@ -231,8 +254,9 @@ def delete_password():
 
 def download_receipt():
     """Descargar recibo"""
+    close_popup()
     try:
-        user_actual.download_receipt()
+        user_actual.download_receipt(pk_password.get())
         messagebox.showinfo(message="Recibo descargado y firmado correctamente.\nLa firma ha sido verificada.")
     except ValueError as e:
         messagebox.showerror(message=e)
@@ -305,10 +329,10 @@ Entry(window_login, textvariable=username).pack()
 Label(window_login, bg=background_color, fg='#ffF', text="Contraseña * ").pack()
 Entry(window_login, textvariable=password, show='*').pack()
 Label(window_login, text="", bg=background_color).pack()
-# Contraseña privada (para firmar el recibo)
-Label(window_login, bg=background_color, fg='#ffF', text="Contraseña de firma * ").pack()
-Entry(window_login, textvariable=pk_password, show='*').pack()
-Label(window_login, text="", bg=background_color).pack()
+# # Contraseña privada (para firmar el recibo)
+# Label(window_login, bg=background_color, fg='#ffF', text="Contraseña de firma * ").pack()
+# Entry(window_login, textvariable=pk_password, show='*').pack()
+# Label(window_login, text="", bg=background_color).pack()
 # Boton de log in
 Button(window_login, text="Iniciar sesión", height="2", width="30", bg="#FFFFFF", command=login_user).pack()
 
@@ -333,11 +357,11 @@ Entry(window_register, textvariable=username).pack()
 # Contraseña
 Label(window_register, bg=background_color, fg='#ffF', text="Contraseña * ").pack()
 Entry(window_register, textvariable=password, show='*').pack()
-Label(window_register, text="Las contraseñas han de ser distintas", bg=background_color, fg='#ffF').pack()
-# Contraseña privada (para firmar el recibo)
-Label(window_register, bg=background_color, fg='#ffF', text="Contraseña de firma * ").pack()
-Entry(window_register, textvariable=pk_password, show='*').pack()
-Label(window_register, text="", bg=background_color).pack()
+# Label(window_register, text="Las contraseñas han de ser distintas", bg=background_color, fg='#ffF').pack()
+# # Contraseña privada (para firmar el recibo)
+# Label(window_register, bg=background_color, fg='#ffF', text="Contraseña de firma * ").pack()
+# Entry(window_register, textvariable=pk_password, show='*').pack()
+# Label(window_register, text="", bg=background_color).pack()
 # Boton de registrar
 Button(window_register, text="Registrarse", height="2", width="30", bg="#FFFFFF", command=register_user).pack()
 

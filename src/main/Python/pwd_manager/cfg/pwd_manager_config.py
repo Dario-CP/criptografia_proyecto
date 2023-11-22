@@ -5,3 +5,4 @@ from pathlib import Path
 # Dario PATH /Desktop/python_projects/criptografia_proyecto/src/data/
 JSON_FILES_PATH = str(Path.home()) + "/Desktop/python_projects/criptografia_proyecto/src/data/"
 DOWNLOADS_PATH = str(Path.home()) + "/Downloads/"
+PKI_PATH = str(Path.home()) + "/Desktop/python_projects/criptografia_proyecto/src/pki/"
