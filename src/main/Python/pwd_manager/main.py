@@ -135,7 +135,17 @@ def open_popup():
                                 "\n4.-Al menos un carácter especial (?!@$&*-.)",
           fg='#ffF', bg=background_color, justify="left").pack()
     Label(pop_up, text="", bg=background_color, fg='#ffF').pack()
+    Label(pop_up, text="Contraseña para descargar y verificar recibos", bg=background_color, fg='#ffF').pack()
+    Label(pop_up, text="", bg=background_color, fg='#ffF').pack()
     Entry(pop_up, textvariable=pk_password, show='*').pack()
+    Label(pop_up, text="", bg=background_color, fg='#ffF').pack()
+    Label(pop_up, text="Si es la primera vez que descarga un recibo, por favor contacte con un\n"
+                       "administrador para introducir la contraseña de generación de su certificado.\n"
+                       "En caso contrario, déjelo en blanco.", bg=background_color, fg='#ffF').pack()
+    Label(pop_up, text="", bg=background_color, fg='#ffF').pack()
+    Label(pop_up, text="Contraseña del administrador", bg=background_color, fg='#ffF').pack()
+    Label(pop_up, text="", bg=background_color, fg='#ffF').pack()
+    Entry(pop_up, textvariable=ca_password, show='*').pack()
     Label(pop_up, text="", bg=background_color, fg='#ffF').pack()
     Button(pop_up, text="Usar contraseña", height="2", width="30", bg="#FFFFFF", command=download_receipt).pack()
     Label(pop_up, text="", bg=background_color, fg='#ffF').pack()
@@ -156,6 +166,8 @@ def login_user():
     """Iniciar sesion"""
     try:
         user_actual.login_user(username.get(), password.get())
+        password.set("")
+        username.set("")
         messagebox.showinfo(message="Sesión iniciada correctamente")
         window_login.forget()
         user_window()
@@ -169,6 +181,8 @@ def register_user():
     """Registrar usuario"""
     try:
         user_actual.register_user(username.get(), password.get())
+        password.set("")
+        username.set("")
         messagebox.showinfo(title='Registrado', message="Registrado correctamente")
         window_register.forget()
         user_window()
@@ -211,6 +225,7 @@ def logout():
     password.set("")
     username.set("")
     pk_password.set("")
+    ca_password.set("")
 
     window_home.pack()
 
@@ -256,9 +271,13 @@ def download_receipt():
     """Descargar recibo"""
     close_popup()
     try:
-        user_actual.download_receipt(pk_password.get())
+        user_actual.download_receipt(pk_password.get(), ca_password.get())
+        pk_password.set("")
+        ca_password.set("")
         messagebox.showinfo(message="Recibo descargado y firmado correctamente.\nLa firma ha sido verificada.")
     except ValueError as e:
+        pk_password.set("")
+        ca_password.set("")
         messagebox.showerror(message=e)
 
 
@@ -293,6 +312,7 @@ global web_password
 global web_note
 global user_actual
 global pk_password
+global ca_password
 username = StringVar()
 password = StringVar()
 web = StringVar()
@@ -300,6 +320,7 @@ web_password = StringVar()
 web_note = StringVar()
 user_actual = User()
 pk_password = StringVar()
+ca_password = StringVar()
 
 # ----VENTANA HOME----
 window_home = Frame(window_principal)
@@ -361,7 +382,7 @@ Entry(window_register, textvariable=password, show='*').pack()
 # # Contraseña privada (para firmar el recibo)
 # Label(window_register, bg=background_color, fg='#ffF', text="Contraseña de firma * ").pack()
 # Entry(window_register, textvariable=pk_password, show='*').pack()
-# Label(window_register, text="", bg=background_color).pack()
+Label(window_register, text="", bg=background_color).pack()
 # Boton de registrar
 Button(window_register, text="Registrarse", height="2", width="30", bg="#FFFFFF", command=register_user).pack()
 

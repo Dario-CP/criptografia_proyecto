@@ -6,6 +6,8 @@ import uuid
 import os
 import base64
 import datetime
+import subprocess
+import shutil
 from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -20,7 +22,6 @@ from pwd_manager.attributes.attribute_password import Password
 from pwd_manager.cfg.pwd_manager_config import DOWNLOADS_PATH
 from pwd_manager.cfg.pwd_manager_config import PKI_PATH
 
-# TODO: Quitar el atributo __pk_password y el parámetro pk_password de los métodos, así como el salt y demás
 
 class User:
     """
@@ -34,9 +35,9 @@ class User:
         self.__encryption_salt = ""
         self.__stored_passwords = []
         self.__manager = Manager()
-        self.__serial_private_key = None   # Serialized private key
+        self.__serial_private_key = None  # Serialized private key
 
-    def login_user(self, username, password, pk_password):
+    def login_user(self, username, password):
         """Login the user"""
         user = self.__manager.get_user_info(username)
         if user is None:
@@ -44,16 +45,11 @@ class User:
 
         self.__username = username
         self.__password = password
-        self.__pk_password = pk_password
+        self.__serial_private_key = eval(user["serial_private_key"])
 
         login = self.check_password(self.__password, eval(user["salt"]), eval(user["password"]))
-        login_pk = self.check_password(self.__pk_password, eval(user["pk_salt"]), eval(user["pk_password"]))
-        if login and login_pk:
+        if login:
             self.__user_id = user["user_id"]
-            self.__private_key = serialization.load_pem_private_key(
-                eval(user["private_key"]),
-                password=self.__pk_password.encode()
-            )
             # Read the passwords from the user after login
             # We decrypt the passwords with Fernet using the user's password as key
             encrypted_passwords = PwdStore().lists(self.user_id)
@@ -63,8 +59,6 @@ class User:
             return self.__username
         elif not login:
             raise ValueError("Nombre de usuario o contraseña incorrectas")
-        elif not login_pk:
-            raise ValueError("Contraseña de clave privada incorrecta")
         else:
             raise ValueError("Error inesperado")
 
@@ -73,12 +67,8 @@ class User:
         # Check if the username is empty
         if username == "":
             raise ValueError("El nombre de usuario no puede estar vacío")
-        # # Check if the password of the password manager and the password for private key are the same
-        # if password == pk_password:
-        #     raise ValueError("Las contraseñas no pueden ser iguales por motivos de seguridad")
         # Check if the password meets the requirements
         Password(password).value
-        # Password(pk_password).value
         # Remember that we store the information on user's logout
         user = self.__manager.get_user_info(username)
         if user is not None:
@@ -87,7 +77,6 @@ class User:
         self.__username = username
         self.__password = password
         self.__user_id = uuid.uuid4()
-        # self.__pk_password = pk_password
         return self.__username
 
     def save_user(self):
@@ -96,20 +85,14 @@ class User:
         user = self.__manager.get_user_info(self.__username)
         # We always generate a new salt and key (derived password)
         salt_password = self.derive_password(self.__password)
-        pk_salt_password = self.derive_password(self.__pk_password)
-        serial_private_key = self.__private_key.private_bytes(encoding=serialization.Encoding.PEM,
-                                                              format=serialization.PrivateFormat.TraditionalOpenSSL,
-                                                              encryption_algorithm=serialization.BestAvailableEncryption(self.__pk_password.encode()))
-        serial_private_key.splitlines()[0]
+
         user_dict = {
             "username": self.__username,
             "password": str(salt_password[1]),
             "salt": str(salt_password[0]),
             "encryption_salt": str(self.__encryption_salt),
             "user_id": str(self.__user_id),
-            "pk_password": str(pk_salt_password[1]),
-            "pk_salt": str(pk_salt_password[0]),        # Private key salt
-            "private_key": str(serial_private_key)      # Derived private key
+            "serial_private_key": str(self.__serial_private_key)
         }
         # If the user is not registered, add the user to the users file
         if user is None:
@@ -134,7 +117,7 @@ class User:
         key = kdf.derive(pwd.encode())  # .encode to convert str to bytes
         return salt, key
 
-    def check_password(self,pwd,salt, key):
+    def check_password(self, pwd, salt, key):
         # verify
         kdf = Scrypt(
             salt=salt,
@@ -164,7 +147,7 @@ class User:
 
     def auth_decrypt(self, data, salt):
         # Obtain the key from the user's password and the encryption salt
-        key = self.derive_password(self.__password,salt)[1]
+        key = self.derive_password(self.__password, salt)[1]
         # Create the Fernet object with the key
         f = Fernet(base64.urlsafe_b64encode(key))
         # Decrypt the data
@@ -206,7 +189,7 @@ class User:
                 return True
         raise ValueError("Sitio de contraseña no encontrado")
 
-    def download_receipt(self, pk_password):
+    def download_receipt(self, pk_password, ca_password):
         """
         Creates a document with a listing of the user's sites
         :return:
@@ -221,7 +204,26 @@ class User:
         # Check if the user already has a private key and a certificate
         if self.__serial_private_key is None:
             # If the user doesn't have a certificate, generate a new one
-            self.generate_certificate(pk_password)
+            if ca_password == "":
+                raise ValueError("La contraseña del administrador no puede estar vacía la primera vez que descarga "
+                                 "un recibo.")
+            try:
+                private_key, certificate = self.generate_certificate(pk_password, ca_password)
+            except Exception as ex:
+                # Delete the user's directory and its contents
+                shutil.rmtree(PKI_PATH + str(self.__user_id), ignore_errors=True)
+                # Set the user's private key to None
+                self.__serial_private_key = None
+                raise ex
+        else:
+            # If the user already has a certificate, load it
+            private_key = serialization.load_pem_private_key(
+                self.__serial_private_key,
+                password=pk_password.encode()
+            )
+            # Read the certificate from the user's directory
+            with open(PKI_PATH + str(self.__user_id) + "/cert_" + str(self.__user_id) + ".pem", "rb") as file:
+                certificate = file.read()
 
         now = datetime.datetime.now()
         receipt_filename = (DOWNLOADS_PATH + "recibo_" + str(self.__username) + "_" +
@@ -247,21 +249,21 @@ class User:
         with open(receipt_filename + ".txt", "rb") as file:
             data = file.read()
         # Sign the file
-        signature = self.sign_file(data)
+        signature = self.sign_file(data, private_key)
         # Save the signature
         with open(signature_filename + ".sig", "wb") as file:
             file.write(signature)
 
         # Verify the signature
         try:
-            self.verify_file(data, signature)
+            self.verify_file(data, signature, certificate)
         except Exception as ex:
             raise ex
         return True
 
-    def sign_file(self, data):
+    def sign_file(self, data, private_key):
         # Sign the file
-        signature = self.__private_key.sign(
+        signature = private_key.sign(
             data,
             padding.PSS(
                 mgf=padding.MGF1(hashes.SHA256()),
@@ -272,6 +274,16 @@ class User:
         return signature
 
     def verify_receipt(self, receipt_filename, signature_filename):
+
+        # Check if the user already has a private key and a certificate
+        if self.__serial_private_key is None:
+            # If the user doesn't have a certificate, raise an exception
+            raise ValueError("El usuario no tiene un certificado.\nPor favor, descargue un recibo primero.")
+
+        # If the user already has a certificate, load it
+        with open(PKI_PATH + str(self.__user_id) + "/cert_" + str(self.__user_id) + ".pem", "rb") as file:
+            certificate = file.read()
+
         # Read the file's bytes
         with open(receipt_filename, "rb") as file:
             data = file.read()
@@ -280,15 +292,30 @@ class User:
             signature = file.read()
         # Verify the signature
         try:
-            self.verify_file(data, signature)
+            self.verify_file(data, signature, certificate)
         except Exception as ex:
             raise ex
         return True
 
-    def verify_file(self, data, signature):
+    def verify_file(self, data, signature, certificate):
+        # Command to verify the certificate
+        command = ('cd ' + PKI_PATH + str(self.__user_id) +
+                   ' & openssl verify -CAfile ../AC1/ac1cert.pem cert_' +
+                   str(self.__user_id) + '.pem')
+        # Run the command and capture the output
+        verification_output = subprocess.check_output(command, shell=True)
+        # Decode the byte string output into a string
+        verification_output = verification_output.decode('utf-8')
+
+        if verification_output != ('cert_' + str(self.__user_id) + ".pem: OK\r\n"):
+            raise ValueError("El certificado del usuario no ha podido ser verificado")
+
         # Verify the signature
         try:
-            self.__private_key.public_key().verify(
+            # Take the public key from the certificate
+            public_key = x509.load_pem_x509_certificate(certificate).public_key()
+            # Verify the signature
+            public_key.verify(
                 signature,
                 data,
                 padding.PSS(
@@ -301,11 +328,12 @@ class User:
             raise ValueError("La firma del documento no ha podido ser verificada") from ex
         return True
 
-    def generate_certificate(self, pk_password):
+    def generate_certificate(self, pk_password, ca_password):
         """
         Generates a certificate signing request (CSR) for the user
         :param pk_password: Password for the user's private key serialization
-        :return:
+        :param ca_password: Password for the CA's private key
+        :return: The user's private key
         """
         # Create the user's directory in the pki folder
         if not os.path.exists(PKI_PATH + str(self.__user_id)):
@@ -329,36 +357,49 @@ class User:
             # Provide various details about who we are.
             x509.NameAttribute(NameOID.COUNTRY_NAME, "ES"),
             x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "MADRID"),
-            x509.NameAttribute(NameOID.ORGANIZATION_NAME, "UC3M")
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, "UC3M"),
+            x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, "INF"),
+            x509.NameAttribute(NameOID.COMMON_NAME, str(self.__user_id)),
         ])).sign(key, hashes.SHA256())
 
         # Write the CSR to a file in the user's directory
-        with open(PKI_PATH + str(self.__user_id) + "/csr.pem", "wb") as file:
+        with open(PKI_PATH + str(self.__user_id) + "/csr_" + str(self.__user_id) + ".pem", "wb") as file:
             file.write(csr.public_bytes(serialization.Encoding.PEM))
 
         # Write the CSR o the AC1/solicitudes directory
-        with open(PKI_PATH + "AC1/solicitudes/" + str(self.__user_id) + ".pem", "wb") as file:
+        with open(PKI_PATH + "AC1/solicitudes/csr_" + str(self.__user_id) + ".pem", "wb") as file:
             file.write(csr.public_bytes(serialization.Encoding.PEM))
+
+        # Get the latest certificate number
+        counter = 0
+        for file in os.listdir(PKI_PATH + "AC1/nuevoscerts"):
+            if counter < int(file.split(".")[0]):
+                counter = int(file.split(".")[0])
 
         # Generate the certificate using OpenSSL
         # Open the AC1 directory in the terminal
-        os.system('cmd /k "cd ' + PKI_PATH + 'AC1"')
-        os.system('cmd /k "openssl ca -in ./solicitudes/' + str(self.__user_id) +
-                  '.pem -notext -config ./openssl_AC1.cnf"')
+        os.system('cmd /c "cd ' + PKI_PATH + 'AC1 & openssl ca -in ./solicitudes/csr_' + str(self.__user_id) +
+                  '.pem -notext -config ./openssl_AC1.cnf -batch -passin pass:' + ca_password + '"')
 
-        # Enter the password for the CA
+        # (the filename  of the new certificate should be the counter + 1 in the format 01.pem, 02.pem, etc.)
+        filename = counter + 1
+        if filename < 10:
+            filename = "0" + str(filename)
+        else:
+            filename = str(filename)
 
+        # Check if a new certificate has been generated
+        if not os.path.exists(PKI_PATH + "AC1/nuevoscerts/" + str(filename) + ".pem"):
+            raise ValueError("La contraseña del administrador es incorrecta")
 
         # Copy the certificate to the user's directory
-        # It is the file with the highest number in the nuevoscerts directory
-        filename = max([int(f.split(".")[0]) for f in os.listdir(PKI_PATH + "AC1/nuevoscerts")])
+        with open(PKI_PATH + "AC1/nuevoscerts/" + str(filename) + ".pem", "rb") as file:
+            certificate = file.read()
 
-        os.system('cmd /k "copy ' + PKI_PATH + 'AC1/nuevoscerts/' + str(self.__user_id) + '.pem ' +
-                  PKI_PATH + str(self.__user_id) + '/cert.pem"')
+        with open(PKI_PATH + str(self.__user_id) + "/cert_" + str(self.__user_id) + ".pem", "wb") as file:
+            file.write(certificate)
 
-
-
-
+        return key, certificate
 
     @property
     def username(self):
