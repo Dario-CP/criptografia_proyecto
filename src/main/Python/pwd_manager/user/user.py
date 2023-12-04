@@ -256,7 +256,7 @@ class User:
 
         # Verify the signature
         try:
-            self.verify_file(data, signature, certificate)
+            self.verify_file_openssl(data, signature, certificate)
         except Exception as ex:
             raise ex
         return True
@@ -292,12 +292,12 @@ class User:
             signature = file.read()
         # Verify the signature
         try:
-            self.verify_file(data, signature, certificate)
+            self.verify_file_cryptography(data, signature, certificate)
         except Exception as ex:
             raise ex
         return True
 
-    def verify_file(self, data, signature, certificate):
+    def verify_file_openssl(self, data, signature, certificate):
         # Command to verify the certificate
         command = ('cd ' + PKI_PATH + str(self.__user_id) +
                    ' & openssl verify -CAfile ../AC1/ac1cert.pem cert_' +
@@ -314,6 +314,77 @@ class User:
         try:
             # Take the public key from the certificate
             public_key = x509.load_pem_x509_certificate(certificate).public_key()
+            # Verify the signature
+            public_key.verify(
+                signature,
+                data,
+                padding.PSS(
+                    mgf=padding.MGF1(hashes.SHA256()),
+                    salt_length=padding.PSS.MAX_LENGTH
+                ),
+                hashes.SHA256()
+            )
+        except Exception as ex:
+            raise ValueError("La firma del documento no ha podido ser verificada") from ex
+        return True
+
+    def verify_file_cryptography(self, data, signature, certificate):
+        """
+        Verifies the signature of a file using the cryptography library
+        :param data:
+        :param signature:
+        :param certificate:
+        :return:
+        """
+        # Verify the certificate by hand
+
+        # Load the certificate
+        certificate = x509.load_pem_x509_certificate(certificate)
+        # Load the CA certificate
+        with open(PKI_PATH + "AC1/ac1cert.pem", "rb") as file:
+            ca_certificate = file.read()
+        ca_certificate = x509.load_pem_x509_certificate(ca_certificate)
+
+        # Verify by hand the certificate chain
+        # Check if the certificate is signed by the CA and if it is valid
+        try:
+            ca_certificate.public_key().verify(
+                certificate.signature,
+                certificate.tbs_certificate_bytes,
+                padding.PKCS1v15(),
+                certificate.signature_hash_algorithm,
+            )
+        except Exception as ex:
+            raise ValueError("El certificado del usuario no ha podido ser verificado") from ex
+
+        # # Check if the certificate is valid at the current time
+        # first_date = certificate.not_valid_before_utc()
+        # last_date = certificate.not_valid_after_utc()
+        # current_date = datetime.datetime.utcnow()
+        # if current_date < first_date or current_date > last_date:
+        #     raise ValueError("El certificado del usuario no es válido en la fecha actual")
+
+        # Check if the CA certificate is self-signed
+        try:
+            ca_certificate.public_key().verify(
+                ca_certificate.signature,
+                ca_certificate.tbs_certificate_bytes,
+                padding.PKCS1v15(),
+                ca_certificate.signature_hash_algorithm,
+            )
+        except Exception as ex:
+            raise ValueError("El certificado de la AC1 no ha podido ser verificado") from ex
+
+        # # Check if the CA certificate is valid at the current time
+        # ca_first_date = ca_certificate.not_valid_before_utc()
+        # ca_last_date = ca_certificate.not_valid_after_utc()
+        # if current_date < ca_first_date or current_date > ca_last_date:
+        #     raise ValueError("El certificado de la AC1 no es válido en la fecha actual")
+
+        # Verify the signature
+        try:
+            # Take the public key from the certificate
+            public_key = certificate.public_key()
             # Verify the signature
             public_key.verify(
                 signature,
